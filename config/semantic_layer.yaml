@@ -1,0 +1,182 @@
+# ---------------------------------------------------------------
+# 语义层：业务语言 -> 物理字段
+# 编译 SQL 时只认这里的 id，LLM/Mock 不直接产出表名与字段名。
+# 新增指标 = 加一条配置 + 一篇口径文档，零代码改动。
+# ---------------------------------------------------------------
+
+metrics:
+  valid_order_cnt:
+    name: 有效订单量
+    business_line: retail
+    aliases: [有效订单, 有效单量, 有效订单数, 有效单, 有效订单量]
+    expr: "SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END)"
+    requires: [is_valid]
+    unit: 单
+    caliber: 有效订单量.md
+
+  order_cnt:
+    name: 订单量
+    business_line: retail
+    aliases: [订单量, 订单数, 总订单, 下单量, 订单总数]
+    expr: "COUNT(*)"
+    requires: []
+    unit: 单
+    caliber: 订单量.md
+
+  pay_amount:
+    name: 销售额
+    business_line: retail
+    aliases: [销售额, 支付金额, 成交额, 营收, 流水, GMV]
+    expr: "ROUND(SUM(pay_amount), 2)"
+    requires: [pay_amount]
+    unit: 元
+    caliber: 销售额.md
+
+  aov:
+    name: 客单价
+    business_line: retail
+    aliases: [客单价, 单均价, 平均每单金额]
+    expr: "ROUND(SUM(pay_amount) / NULLIF(SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END), 0), 2)"
+    requires: [pay_amount, is_valid]
+    unit: 元
+    caliber: 客单价.md
+
+  refund_rate:
+    name: 退款率
+    business_line: retail
+    aliases: [退款率, 退货率, 退款占比]
+    expr: "ROUND(SUM(CASE WHEN order_status = '已退款' THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(*), 0), 4)"
+    requires: [order_status]
+    unit: 百分比
+    value_type: percent
+    caliber: null
+
+  sales_qty:
+    name: 销量
+    business_line: retail
+    aliases: [销量, 件数, 销售件数]
+    expr: "SUM(qty)"
+    requires: [qty]
+    unit: 件
+    caliber: null
+
+  shipment_cnt:
+    name: 发货单量
+    business_line: logistics
+    aliases: [发货量, 发货单量, 运单数, 发货数]
+    expr: "COUNT(*)"
+    requires: []
+    unit: 单
+    caliber: null
+
+  avg_delivery_hours:
+    name: 平均履约时效
+    business_line: logistics
+    aliases: [履约时效, 配送时长, 平均时效, 签收时长, 时效]
+    expr: "ROUND(AVG(delivery_hours), 1)"
+    requires: [delivery_hours]
+    unit: 小时
+    caliber: 履约时效.md
+
+  ontime_rate:
+    name: 及时妥投率
+    business_line: logistics
+    aliases: [及时率, 妥投率, 准时率, 及时妥投率, 按时送达率]
+    expr: "ROUND(SUM(CASE WHEN is_signed = 1 AND is_ontime = 1 THEN 1 ELSE 0 END) * 1.0 / NULLIF(SUM(CASE WHEN is_signed = 1 THEN 1 ELSE 0 END), 0), 4)"
+    requires: [is_ontime, is_signed]
+    unit: 百分比
+    value_type: percent
+    caliber: 及时妥投率.md
+
+  perf_gmv:
+    name: 绩效销售额
+    business_line: performance
+    aliases: [绩效销售额, 业绩, 销售额, GMV]
+    expr: "ROUND(SUM(gmv), 2)"
+    requires: [gmv]
+    unit: 元
+    caliber: null
+
+  achieve_rate:
+    name: 目标达成率
+    business_line: performance
+    aliases: [达成率, 目标达成率, 完成率, 达成比例]
+    expr: "ROUND(SUM(gmv) / NULLIF(SUM(target_gmv), 0), 4)"
+    requires: [gmv, target_gmv]
+    unit: 百分比
+    value_type: percent
+    caliber: 目标达成率.md
+
+  commission:
+    name: 佣金
+    business_line: performance
+    aliases: [佣金, 提成, 佣金金额]
+    expr: "ROUND(SUM(commission), 2)"
+    requires: [commission]
+    unit: 元
+    caliber: null
+
+  target_gmv:
+    name: 目标销售额
+    business_line: performance
+    aliases: [目标销售额, 销售目标, 目标, 指标额]
+    expr: "ROUND(SUM(target_gmv), 2)"
+    requires: [target_gmv]
+    unit: 元
+    caliber: null
+
+dimensions:
+  region:
+    name: 区域
+    aliases: [区域, 大区, 片区, 按区域, 各大区]
+    expr: "region_name"
+    column: region_name
+    applies_to: [retail, logistics, performance]
+  city:
+    name: 城市
+    aliases: [城市, 按城市, 各城市, 城市维度]
+    expr: "city_name"
+    column: city_name
+    applies_to: [retail, logistics, performance]
+  store:
+    name: 店铺
+    aliases: [店铺, 门店, 分店, 按店铺, 各门店, 按门店]
+    expr: "store_name"
+    column: store_name
+    applies_to: [retail, logistics, performance]
+  seller:
+    name: 卖家
+    aliases: [卖家, 商家, 店主, 按卖家]
+    expr: "seller_name"
+    column: seller_name
+    applies_to: [retail, logistics, performance]
+  category:
+    name: 品类
+    aliases: [品类, 类目, 商品类目, 按品类, 分类]
+    expr: "category"
+    column: category
+    applies_to: [retail]
+  product:
+    name: 商品
+    aliases: [商品, 单品, 按商品]
+    expr: "product_name"
+    column: product_name
+    applies_to: [retail]
+  date:
+    name: 日期
+    aliases: [日期, 按天, 每日, 每天, 按日, 日趋势, 趋势]
+    expr: "{date_col}"       # 编译时替换为该业务线的 date_column
+    column: null
+    applies_to: [retail, logistics, performance]
+
+# 各业务线默认视角（用户只说"看看数据"时的兜底）
+default_view:
+  retail:
+    metric: valid_order_cnt
+    dimension: date
+  logistics:
+    metric: ontime_rate
+    dimension: date
+  performance:
+    metric: achieve_rate
+    dimension: date

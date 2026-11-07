@@ -1,0 +1,56 @@
+app:
+  name: retail-nl2sql-agent
+  version: "1.1"
+  language: zh-CN
+  host: 127.0.0.1
+  port: 8000
+
+warehouse:
+  path: data/warehouse.db
+  readonly: true
+
+llm:
+  # mock | openai_like
+  provider: mock
+  openai_base_url: https://api.openai.com/v1
+  openai_model: gpt-4o-mini
+  openai_api_key_env: OPENAI_API_KEY
+  temperature: 0
+
+time:
+  # 为可复现测试，允许注入"今天"；null 表示取系统当天
+  today: null
+  default_window_days: 7
+
+intent:
+  # 缺这些槽位必须澄清；时间缺失不打断用户，走默认窗口（见 time_parser.default_time_range）
+  required_slots:
+    - metric
+  # 低于该置信度走兜底
+  min_confidence: 0.60
+  clarify_on_ambiguous_metric: true
+
+session:
+  ttl_minutes: 60
+  max_history_turns: 10
+
+export:
+  formats:
+    - csv
+    - xlsx
+  max_rows: 50000
+
+audit:
+  enabled: true
+  retention_days: 180
+  path: logs/audit.jsonl
+
+# ---------------------------------------------------------------
+# 缺陷开关（教学用）：默认关闭，作品集对外展示时保持正常行为。
+# enabled=false  -> 全部缺陷不生效
+# active=[D03]   -> 只激活 D03，便于逐条验证测试有效性
+# active=["ALL"] -> 激活全部
+# ---------------------------------------------------------------
+defect_mode:
+  enabled: false
+  active: []

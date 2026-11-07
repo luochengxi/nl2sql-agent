@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# 数仓是构建产物，不入库（用 scripts/init_warehouse.py 重建）
+data/*.db
+
+# 审计与运行日志
+logs/
+*.log
+
+# 缺陷答案 key：本地留存，不进公开仓库（避免作品集泄题）
+docs/*.local.md

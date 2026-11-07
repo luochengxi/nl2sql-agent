@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>零售取数 Agent</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#ffffff; --line:#e5e9f0; --text:#1f2937;
+    --muted:#6b7280; --primary:#2563eb; --primary-soft:#eff6ff;
+    --green:#059669; --amber:#d97706; --red:#dc2626; --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:14px}
+  header{height:60px;background:var(--card);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;white-space:nowrap}
+  .logo{width:28px;height:28px;border-radius:8px;background:var(--primary);color:#fff;
+    display:grid;place-items:center;font-size:14px}
+  .brand small{font-weight:400;color:var(--muted);font-size:12px}
+  .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  select,button,textarea{font-family:inherit;font-size:13px}
+  select{border:1px solid var(--line);background:#fff;border-radius:7px;padding:6px 8px;color:var(--text)}
+  .badge{padding:4px 9px;border-radius:999px;background:var(--primary-soft);color:var(--primary);
+    font-size:11px;white-space:nowrap}
+  .badge.warn{background:#fffbeb;color:var(--amber)}
+  main{display:grid;grid-template-columns:minmax(340px,42%) 1fr;gap:14px;padding:14px;height:calc(100vh - 60px)}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .panel-head{padding:12px 16px;border-bottom:1px solid var(--line);font-weight:600;
+    display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .panel-head .sub{font-weight:400;color:var(--muted);font-size:12px}
+  #messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:88%;padding:10px 13px;border-radius:10px;line-height:1.65;white-space:pre-wrap}
+  .msg.user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:3px}
+  .msg.bot{align-self:flex-start;background:#f3f4f6;border-bottom-left-radius:3px}
+  .msg.bot.clarify{background:#fffbeb;border:1px solid #fde68a}
+  .msg.bot.fallback{background:#fef2f2;border:1px solid #fecaca}
+  .msg .tag{display:inline-block;font-size:11px;color:var(--muted);margin-bottom:4px}
+  .msg.user .tag{color:#dbeafe}
+  .suggestions{padding:0 16px 8px;display:flex;gap:6px;flex-wrap:wrap}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--primary);border-radius:999px;
+    padding:5px 10px;font-size:12px;cursor:pointer}
+  .chip:hover{background:var(--primary-soft)}
+  .composer{border-top:1px solid var(--line);padding:12px;display:flex;gap:8px;align-items:flex-end}
+  textarea{flex:1;resize:none;border:1px solid var(--line);border-radius:8px;padding:9px 10px;
+    height:62px;outline:none;line-height:1.5}
+  textarea:focus{border-color:var(--primary)}
+  button{cursor:pointer;border-radius:8px;border:1px solid var(--line);background:#fff;
+    color:var(--text);padding:8px 12px}
+  button:hover{border-color:var(--primary);color:var(--primary)}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  button.primary:hover{background:#1d4ed8;color:#fff}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .icon-btn{padding:5px 9px;font-size:12px}
+  #resultBody{flex:1;overflow-y:auto;padding:14px 16px}
+  .empty{color:var(--muted);text-align:center;padding:60px 20px;line-height:1.9}
+  .card{border:1px solid var(--line);border-radius:9px;margin-bottom:12px;overflow:hidden}
+  .card-h{padding:9px 12px;background:#fafbfc;border-bottom:1px solid var(--line);
+    font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .card-b{padding:12px}
+  .summary{white-space:pre-wrap;line-height:1.8;font-size:13px}
+  .toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .toolbar .spacer{flex:1}
+  .chart-types{display:flex;gap:4px}
+  .chart-types button{padding:4px 9px;font-size:12px}
+  .chart-types button.active{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}
+  svg{display:block;width:100%;height:auto}
+  table{border-collapse:collapse;width:100%;font-size:12.5px}
+  th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left;white-space:nowrap}
+  th{background:#fafbfc;position:sticky;top:0;font-weight:600;color:var(--muted)}
+  tbody tr.clickable{cursor:pointer}
+  tbody tr.clickable:hover{background:var(--primary-soft)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;
+    font-size:12px;line-height:1.6;margin:0;white-space:pre-wrap}
+  .refs{font-size:12px;color:var(--muted);line-height:1.9}
+  .refs li{margin-bottom:3px}
+  .meta{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7}
+  .kpi{display:inline-block;padding:2px 7px;border-radius:5px;background:var(--primary-soft);
+    color:var(--primary);font-size:11px;margin-right:6px}
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;
+    align-items:center;justify-content:center;padding:20px;z-index:50}
+  .modal.show{display:flex}
+  .modal-box{background:#fff;border-radius:12px;width:min(860px,94vw);max-height:86vh;
+    display:flex;flex-direction:column;overflow:hidden}
+  .modal-box .panel-head{padding:14px 18px}
+  .modal-body{padding:16px 18px;overflow-y:auto}
+  .caliber-item{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .caliber-item .t{font-weight:600}
+  .caliber-item .m{font-size:12px;color:var(--muted);margin-top:3px}
+  .caliber-item textarea{width:100%;height:110px;margin-top:8px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;
+    color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;opacity:0;transition:.25s;z-index:99}
+  .toast.show{opacity:1}
+  @media(max-width:900px){main{grid-template-columns:1fr;height:auto}.panel{min-height:420px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">数</span> 零售取数 Agent <small>NL2SQL · v1.1</small></div>
+  <div class="controls">
+    <label>账号 <select id="userSel"></select></label>
+    <label>业务线 <select id="blSel"><option value="">自动识别</option></select></label>
+    <button class="icon-btn" id="newSession">新会话</button>
+    <button class="icon-btn" id="caliberBtn">口径文档</button>
+    <span class="badge" id="statusBadge">加载中…</span>
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="panel-head">对话 <span class="sub" id="scopeHint">支持多轮追问与意图澄清</span></div>
+    <div id="messages"><div class="empty">你好，我是取数助手。<br>试试下面的示例问题，或直接问我。</div></div>
+    <div class="suggestions" id="suggestions"></div>
+    <div class="composer">
+      <textarea id="input" placeholder="例如：近 7 日各城市有效订单量"></textarea>
+      <button class="primary" id="sendBtn">发送</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">结果 <span class="sub" id="resultMeta"></span></div>
+    <div id="resultBody"><div class="empty">发起一次提问后，这里会展示图表、明细、SQL 与口径说明。</div></div>
+  </section>
+</main>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="panel-head"><span id="modalTitle">明细</span><button class="icon-btn" id="modalClose">关闭</button></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const state = {sessionId:null, last:null, userId:'U001', users:[], config:{}};
+
+async function api(path, opts={}){
+  const r = await fetch(path, opts);
+  if(!r.ok){ let m = r.statusText; try{ m = (await r.json()).detail || m; }catch(e){} throw new Error(m); }
+  return r.json();
+}
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200); }
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(v, col){
+  if(v===null || v===undefined) return '—';
+  if(typeof v==='number'){
+    if(/率|占比|增长率/.test(col||'')) return (v*100).toFixed(2)+'%';
+    return v.toLocaleString('zh-CN',{maximumFractionDigits:2});
+  }
+  return esc(v);
+}
+
+async function init(){
+  try{
+    state.users = await api('/api/users');
+    $('userSel').innerHTML = state.users.map(u=>
+      `<option value="${u.user_id}">${esc(u.name)} · ${esc(u.role_label)}</option>`).join('');
+    const bls = await api('/api/business-lines');
+    $('blSel').innerHTML += bls.map(b=>`<option value="${b.id}">${esc(b.label)}</option>`).join('');
+    state.config = await api('/api/config');
+    const d = state.config.defect_mode_enabled;
+    $('statusBadge').textContent = d ? `缺陷模式 ${state.config.active_defects.join(',')||'ALL'}` : `正常模式 · T=${state.config.today}`;
+    $('statusBadge').className = 'badge' + (d?' warn':'');
+    setSuggestions(['近 7 日各城市有效订单量','华东本月销售额','物流及时妥投率环比','上海各门店客单价']);
+  }catch(e){ toast('初始化失败：'+e.message); }
+}
+function setSuggestions(list){
+  $('suggestions').innerHTML = list.map(s=>`<span class="chip">${esc(s)}</span>`).join('');
+  $('suggestions').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ $('input').value=c.textContent; send(); });
+}
+function addMsg(role, text, kind=''){
+  const box=$('messages');
+  if(box.querySelector('.empty')) box.innerHTML='';
+  const d=document.createElement('div');
+  d.className='msg '+role+(kind?' '+kind:'');
+  const tag = role==='user' ? '我' : ({clarify:'意图澄清',fallback:'兜底',error:'异常',result:'取数结果'}[kind]||'助手');
+  d.innerHTML=`<div class="tag">${tag}</div>${esc(text)}`;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+async function send(){
+  const q=$('input').value.trim(); if(!q) return;
+  state.userId=$('userSel').value;
+  addMsg('user',q);
+  $('input').value=''; $('sendBtn').disabled=true;
+  try{
+    const body={user_id:state.userId, query:q};
+    if(state.sessionId) body.session_id=state.sessionId;
+    const bl=$('blSel').value; if(bl) body.business_line=bl;
+    const r=await api('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    state.sessionId=r.session_id; state.last=r;
+    addMsg('bot', r.text, r.answer_type);
+    if(r.suggestions && r.suggestions.length) setSuggestions(r.suggestions);
+    if(r.answer_type==='result') renderResult(r);
+  }catch(e){ addMsg('bot','请求失败：'+e.message,'error'); }
+  finally{ $('sendBtn').disabled=false; }
+}
+
+/* ---------- 结果渲染 ---------- */
+function renderResult(r){
+  $('resultMeta').innerHTML = `<span class="kpi">置信度 ${(r.confidence*100).toFixed(0)}%</span>`+
+    `<span class="kpi">${r.row_count} 行</span>${esc(r.plan?.business_line||'')}`;
+  const refs = (r.caliber_refs||[]).map(x=>`<li>${esc(x)}</li>`).join('') || '<li>本次未引用口径文档</li>';
+  $('resultBody').innerHTML = `
+    <div class="card"><div class="card-h">摘要</div><div class="card-b summary">${esc(r.text)}</div></div>
+    <div class="card">
+      <div class="card-h"><span>图表（基础）</span>
+        <div class="chart-types" id="chartTypes">
+          <button data-t="line" class="active">折线</button>
+          <button data-t="bar">柱状</button>
+          <button data-t="pie">饼图</button>
+        </div>
+      </div>
+      <div class="card-b" id="chartBox"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><span>明细表 <small style="color:var(--muted);font-weight:400">点击任意行可下钻</small></span>
+        <div class="toolbar">
+          <button class="icon-btn" id="expCsv">导出 CSV</button>
+          <button class="icon-btn" id="expXlsx">导出 Excel</button>
+          <button class="icon-btn" id="fbUp">赞</button>
+          <button class="icon-btn" id="fbDown">踩</button>
+        </div>
+      </div>
+      <div class="card-b" style="padding:0;max-height:340px;overflow:auto" id="tableBox"></div>
+    </div>
+    <div class="card"><div class="card-h">SQL 透明 / 映射说明</div><div class="card-b">
+      <pre>${esc(r.sql||'')}</pre>
+      <div class="meta">${esc(r.explanation||'')}</div>
+    </div></div>
+    <div class="card"><div class="card-h">引用口径</div><div class="card-b refs"><ul style="margin:0;padding-left:18px">${refs}</ul></div></div>
+  `;
+  drawChart(r.chart, 'line');
+  $('chartTypes').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    $('chartTypes').querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); drawChart(r.chart, b.dataset.t);
+  });
+  renderTable(r);
+  $('expCsv').onclick=()=>doExport('csv');
+  $('expXlsx').onclick=()=>doExport('xlsx');
+  $('fbUp').onclick=()=>doFeedback('up');
+  $('fbDown').onclick=()=>doFeedback('down');
+}
+
+function renderTable(r){
+  const cols=r.columns||[], rows=r.rows||[];
+  const head='<tr>'+cols.map(c=>`<th>${esc(c)}</th>`).join('')+'</tr>';
+  const body=rows.map((row,i)=>'<tr class="clickable" data-i="'+i+'">'+
+    row.map((v,j)=>`<td class="${typeof v==='number'?'num':''}">${fmt(v,cols[j])}</td>`).join('')+'</tr>').join('');
+  $('tableBox').innerHTML=`<table><thead>${head}</thead><tbody>${body||'<tr><td colspan="'+cols.length+'" style="text-align:center;color:var(--muted)">无数据</td></tr>'}</tbody></table>`;
+  $('tableBox').querySelectorAll('tr.clickable').forEach(tr=>tr.onclick=()=>drilldown(r, rows[+tr.dataset.i]));
+}
+
+/* ---------- 纯 SVG 自绘基础图表（无 CDN 依赖） ---------- */
+function drawChart(spec, type){
+  const box=$('chartBox');
+  if(!spec || !spec.series || !spec.series.length){ box.innerHTML='<div class="empty">本次结果无可绘制的数值序列</div>'; return; }
+  const W=680,H=260,P={l:52,r:18,t:18,b:52};
+  const iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const series=spec.series.filter(s=>s.data.some(v=>typeof v==='number' && v!==null));
+  if(!series.length){ box.innerHTML='<div class="empty">无数值数据</div>'; return; }
+  const colors=['#2563eb','#0891b2','#d97706','#7c3aed','#059669'];
+  const all=series.flatMap(s=>s.data.filter(v=>typeof v==='number'&&v!==null));
+  let mx=Math.max(...all,0), mn=Math.min(...all,0);
+  if(mx===mn) mx=mn+1;
+  const y=v=>P.t+ih-(v-mn)/(mx-mn)*ih;
+  const labels=spec.x.map(String);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  // 网格与 y 轴
+  for(let k=0;k<=4;k++){
+    const v=mn+(mx-mn)*k/4, yy=y(v);
+    svg+=`<line x1="${P.l}" y1="${yy}" x2="${W-P.r}" y2="${yy}" stroke="#eef1f6"/>`;
+    svg+=`<text x="${P.l-8}" y="${yy+4}" text-anchor="end" font-size="10" fill="#9ca3af">${Math.round(v)}</text>`;
+  }
+  if(type==='pie'){
+    if(series.length>1 || labels.length>10){ box.innerHTML='<div class="empty">饼图仅适用于单一指标、且分类不超过 10 项</div>'; return; }
+    const vals=series[0].data.map(v=>typeof v==='number'&&v>0?v:0);
+    const total=vals.reduce((a,b)=>a+b,0)||1;
+    const cx=W/2, cy=H/2, r=Math.min(ih,iw)/2*0.82;
+    let a0=-Math.PI/2;
+    vals.forEach((v,i)=>{
+      const a1=a0+v/total*Math.PI*2;
+      const p0=[cx+r*Math.cos(a0),cy+r*Math.sin(a0)], p1=[cx+r*Math.cos(a1),cy+r*Math.sin(a1)];
+      const large=(a1-a0)>Math.PI?1:0;
+      svg+=`<path d="M ${cx} ${cy} L ${p0[0]} ${p0[1]} A ${r} ${r} 0 ${large} 1 ${p1[0]} ${p1[1]} Z" fill="${colors[i%colors.length]}" stroke="#fff" stroke-width="2"/>`;
+      const mid=(a0+a1)/2, lx=cx+r*0.62*Math.cos(mid), ly=cy+r*0.62*Math.sin(mid);
+      svg+=`<text x="${lx}" y="${ly}" text-anchor="middle" font-size="10" fill="#fff">${(v/total*100).toFixed(0)}%</text>`;
+      a0=a1;
+    });
+    labels.forEach((l,i)=>{
+      const yy=P.t+14+i*18;
+      svg+=`<rect x="${W-P.r-108}" y="${yy-9}" width="10" height="10" fill="${colors[i%colors.length]}"/>`;
+      svg+=`<text x="${W-P.r-92}" y="${yy}" font-size="10" fill="#4b5563">${esc(l.length>8?l.slice(0,8)+'…':l)}</text>`;
+    });
+  }else{
+    const n=labels.length, step=iw/Math.max(n,1);
+    const cx=i=>P.l+step*(i+0.5);
+    // x 轴标签（过多时抽稀）
+    const skip=Math.ceil(n/12);
+    labels.forEach((l,i)=>{ if(i%skip===0){
+      const short=l.length>7?l.slice(0,7)+'…':l;
+      svg+=`<text x="${cx(i)}" y="${H-P.b+18}" text-anchor="middle" font-size="10" fill="#6b7280">${esc(short)}</text>`;
+    }});
+    if(type==='bar'){
+      const bw=Math.max(3, Math.min(26, step/(series.length+1)));
+      series.forEach((s,si)=>s.data.forEach((v,i)=>{
+        if(typeof v!=='number'||v===null) return;
+        const x=cx(i)-((series.length-1)*bw)/2+si*bw, yy=y(Math.max(v,0));
+        svg+=`<rect x="${x}" y="${yy}" width="${bw-1}" height="${Math.max(1,P.t+ih-yy)}" fill="${colors[si%colors.length]}" rx="2"/>`;
+      }));
+    }else{
+      series.forEach((s,si)=>{
+        const pts=s.data.map((v,i)=>typeof v==='number'&&v!==null?`${cx(i)},${y(v)}`:null).filter(Boolean).join(' ');
+        svg+=`<polyline points="${pts}" fill="none" stroke="${colors[si%colors.length]}" stroke-width="2.2" stroke-linejoin="round"/>`;
+        s.data.forEach((v,i)=>{ if(typeof v==='number'&&v!==null)
+          svg+=`<circle cx="${cx(i)}" cy="${y(v)}" r="3" fill="#fff" stroke="${colors[si%colors.length]}" stroke-width="2"/>`; });
+      });
+    }
+    // 图例
+    series.forEach((s,i)=>{
+      const lx=P.l+i*130;
+      svg+=`<rect x="${lx}" y="${P.t-2}" width="10" height="10" fill="${colors[i%colors.length]}"/>`;
+      svg+=`<text x="${lx+14}" y="${P.t+7}" font-size="10" fill="#4b5563">${esc(s.name)}</text>`;
+    });
+    svg+=`<line x1="${P.l}" y1="${P.t+ih}" x2="${W-P.r}" y2="${P.t+ih}" stroke="#d1d5db"/>`;
+  }
+  svg+='</svg>';
+  box.innerHTML=svg;
+}
+
+/* ---------- 导出 / 反馈 / 下钻 / 口径 ---------- */
+async function doExport(fmt){
+  if(!state.last?.export_token) return toast('暂无可导出结果');
+  try{
+    const r=await fetch(`/api/export?token=${state.last.export_token}&user_id=${encodeURIComponent(state.userId)}&fmt=${fmt}`);
+    if(!r.ok) throw new Error((await r.json()).detail||r.statusText);
+    const blob=await r.blob(), a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=`取数结果.${fmt}`; a.click();
+    URL.revokeObjectURL(a.href); toast('已导出');
+  }catch(e){ toast('导出失败：'+e.message); }
+}
+async function doFeedback(rating){
+  try{
+    const h=await api(`/api/history?user_id=${encodeURIComponent(state.userId)}&limit=1`);
+    if(!h.length) return toast('暂无可反馈的查询');
+    await api('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({user_id:state.userId, query_id:h[0].query_id, rating, comment:''})});
+    toast('感谢反馈，已记录');
+  }catch(e){ toast('反馈失败：'+e.message); }
+}
+async function drilldown(r, row){
+  const filters={};
+  (r.dim_columns||[]).forEach((c,i)=>{ if(c && row[i]!==undefined && row[i]!==null) filters[c]=String(row[i]); });
+  try{
+    const d=await api('/api/drilldown',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({user_id:state.userId, token:r.drilldown_token, row_filters:filters})});
+    const cols=d.columns, rows=d.rows;
+    const html=`<div class="meta">下钻条件：${esc(JSON.stringify(filters))} · 共 ${rows.length} 行（最多 200 行）</div>
+      <div style="max-height:56vh;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:10px">
+      <table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(rr=>`<tr>${rr.map(v=>`<td>${esc(v??'—')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      <div class="meta" style="margin-top:10px"><pre style="font-size:11px">${esc(d.sql)}</pre></div>`;
+    showModal('明细下钻', html);
+  }catch(e){ toast('下钻失败：'+e.message); }
+}
+function showModal(title, html){ $('modalTitle').textContent=title; $('modalBody').innerHTML=html; $('modal').classList.add('show'); }
+$('modalClose').onclick=()=>$('modal').classList.remove('show');
+$('modal').onclick=e=>{ if(e.target.id==='modal') $('modal').classList.remove('show'); };
+$('newSession').onclick=()=>{ state.sessionId=null; state.last=null;
+  $('messages').innerHTML='<div class="empty">已开启新会话。</div>';
+  $('resultBody').innerHTML='<div class="empty">发起一次提问后，这里会展示图表、明细、SQL 与口径说明。</div>';
+  setSuggestions(['近 7 日各城市有效订单量','华东本月销售额','物流及时妥投率环比']); };
+
+$('caliberBtn').onclick=async()=>{
+  try{
+    const list=await api('/api/calibers');
+    const html=`<div class="meta">口径由产品 + 运营维护；保存后自动重建 RAG 索引。</div>`+
+      list.map(d=>`<div class="caliber-item"><div class="t">${esc(d.metric)} · ${esc(d.filename)}</div>
+        <div class="m">v${esc(d.version)} ｜ ${esc(d.owner)} ｜ ${esc(d.business_line)} ｜ 更新 ${esc(d.updated)}</div>
+        <div class="m">${esc(d.summary)}</div>
+        <textarea id="cal_${esc(d.filename).replace(/[^\w一-龥]/g,'_')}" data-f="${esc(d.filename)}" data-m="${esc(d.metric)}" data-b="${esc(d.business_line)}" data-o="${esc(d.owner)}" data-v="${esc(d.version)}">${esc('')}</textarea>
+        <button class="icon-btn" onclick="saveCaliber(this)">保存并同步索引</button></div>`).join('');
+    showModal('口径文档（F16）', html);
+    // 载入原文
+    for(const d of list){
+      const ta=document.querySelector(`textarea[data-f="${CSS.escape(d.filename)}"]`);
+      if(ta){ const full=await api('/api/calibers/'+encodeURIComponent(d.filename)); ta.value=full.body||''; }
+    }
+  }catch(e){ toast('口径加载失败：'+e.message); }
+};
+async function saveCaliber(btn){
+  const box=btn.parentElement, ta=box.querySelector('textarea');
+  try{
+    await api('/api/calibers',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({filename:ta.dataset.f, metric:ta.dataset.m, business_line:ta.dataset.b,
+        owner:ta.dataset.o, version:ta.dataset.v, body:ta.value, status:'active'})});
+    toast('已保存并重建索引');
+  }catch(e){ toast('保存失败：'+e.message); }
+}
+
+$('sendBtn').onclick=send;
+$('input').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); }});
+init();
+</script>
+</body>
+</html>

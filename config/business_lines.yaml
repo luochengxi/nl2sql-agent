@@ -1,0 +1,74 @@
+# ---------------------------------------------------------------
+# 业务线 -> 数据集（宽表视图）
+# 为什么用宽表视图：把 join 提前固化在数据库里，编译器只需面向单表，
+# 不必让 LLM 猜 JOIN，也让"行级权限下推"有唯一注入点。
+# ---------------------------------------------------------------
+
+business_lines:
+  retail:
+    label: 零售线
+    view: v_retail_order
+    date_column: order_date
+    # 注意：不要把"销售额/GMV"放进业务线关键词——它在零售线与绩效线同名不同口径，
+    # 应该交给意图澄清，否则歧义会被悄悄消掉（对应口径文档「销售额」的常见误解）。
+    keywords: [订单, 有效订单, 下单, 客单价, 退款, 销量, 商品, 品类, 零售, 交易, 成交额]
+    default_metric: valid_order_cnt
+    desc: 订单 / 交易主题
+  logistics:
+    label: 物流线
+    view: v_logistics_ship
+    date_column: ship_date
+    keywords: [物流, 发货, 配送, 签收, 妥投, 时效, 及时率, 运单, 履约]
+    default_metric: ontime_rate
+    desc: 履约 / 配送主题
+  performance:
+    label: 绩效线
+    view: v_performance
+    date_column: stat_date
+    keywords: [绩效, 达成率, 目标, 佣金, 提成, 考核, 业绩]
+    default_metric: achieve_rate
+    desc: 经营目标 / 绩效主题
+
+# 组织树下的行级过滤列（三个视图列名保持一致）
+scope_columns:
+  region: region_name
+  city: city_name
+  store: store_id
+
+# 明细下钻时允许展示的列（导出/下钻用），敏感列由 column_policy 裁剪
+detail_columns:
+  retail:
+    - order_id
+    - order_date
+    - region_name
+    - city_name
+    - store_name
+    - seller_name
+    - product_name
+    - category
+    - qty
+    - pay_amount
+    - cost_amount
+    - customer_phone
+    - seller_phone
+    - order_status
+    - is_valid
+  logistics:
+    - shipment_id
+    - ship_date
+    - region_name
+    - city_name
+    - store_name
+    - order_id
+    - delivery_hours
+    - is_ontime
+    - supplier_cost
+  performance:
+    - stat_date
+    - region_name
+    - city_name
+    - store_name
+    - seller_name
+    - gmv
+    - target_gmv
+    - commission
