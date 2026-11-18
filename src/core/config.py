@@ -11,10 +11,12 @@ import os
 from datetime import date
 from functools import lru_cache
 from typing import Any
+from dotenv import load_dotenv
 
 import yaml
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv(os.path.join(ROOT, ".env"))
 CONFIG_DIR = os.path.join(ROOT, "config")
 KNOWLEDGE_DIR = os.path.join(ROOT, "knowledge")
 

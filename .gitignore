@@ -13,3 +13,7 @@ logs/
 
 # 缺陷答案 key：本地留存，不进公开仓库（避免作品集泄题）
 docs/*.local.md
+
+# 本地环境与 IDE 产物
+.DS_Store
+.idea/

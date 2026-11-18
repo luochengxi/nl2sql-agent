@@ -11,11 +11,15 @@ warehouse:
 
 llm:
   # mock | openai_like
-  provider: mock
-  openai_base_url: https://api.openai.com/v1
-  openai_model: gpt-4o-mini
+  provider: openai_like
+  openai_base_url: https://ws-8hbix6p5babbj3uf.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+  openai_model: qwen3.7-plus
   openai_api_key_env: OPENAI_API_KEY
   temperature: 0
+     #  openai_base_url: https://api.openai.com/v1
+     #  openai_model: gpt-4o-mini
+    #  openai_api_key_env: OPENAI_API_KEY
+
 
 time:
   # 为可复现测试，允许注入"今天"；null 表示取系统当天
