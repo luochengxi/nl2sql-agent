@@ -23,26 +23,28 @@ from .config import settings
 
 class LLMProvider:
     name = "base"
-
-    def complete_json(self, system: str, user: str) -> dict[str, Any] | None:
+    def complete_json(self, system: str, user: str): raise NotImplementedError
+    def complete_with_tools(self, messages: list[dict], tools: list[dict],
+                            tool_choice: str = "auto") -> dict | None:
         raise NotImplementedError
-
+    @property
+    def supports_tools(self) -> bool:
+        return False
     @property
     def available(self) -> bool:
         return True
 
-
 class MockProvider(LLMProvider):
-    """确定性规则通道：不调用任何外部服务，返回 None 表示"交给规则解析"。"""
     name = "mock"
+    def __init__(self) -> None:
+        self.scripted: list[dict] = []      # 测试注入预设 tool_calls
 
-    def complete_json(self, system: str, user: str) -> dict[str, Any] | None:
-        return None
-
+    def complete_json(self, system, user): return None
+    def complete_with_tools(self, messages, tools, tool_choice="auto"):
+        return {"content": "", "tool_calls": list(self.scripted),
+                "finish_reason": "stop"}
     @property
-    def available(self) -> bool:
-        return False
-
+    def available(self): return False
 
 class OpenAILikeProvider(LLMProvider):
     name = "openai_like"
@@ -87,6 +89,46 @@ class OpenAILikeProvider(LLMProvider):
         except (urllib.error.URLError, KeyError, json.JSONDecodeError, TimeoutError, OSError):
             return None
 
+
+    @property
+    def supports_tools(self) -> bool:
+        return self.available
+
+
+    def complete_with_tools(self, messages: list[dict], tools: list[dict],
+                            tool_choice: str = "auto") -> dict | None:
+        if not self.available:
+            return None
+        payload = {
+            "model": self.model,
+            "temperature": self.temperature,  # 保持 0，降低随机性
+            "tools": tools,
+            "tool_choice": tool_choice,
+            "messages": messages,
+        }
+        req = urllib.request.Request(f"{self.base_url}/chat/completions",
+                                     data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+                                     headers={"Content-Type": "application/json",
+                                              "Authorization": f"Bearer {self.api_key}"}, method="POST", )
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            ch = data["choices"][0]
+            msg = ch["message"]
+            calls = []
+            for tc in msg.get("tool_calls") or []:
+                fn = tc.get("function", {})
+                raw = fn.get("arguments") or "{}"
+                try:
+                    args = json.loads(raw)
+                except json.JSONDecodeError:
+                    args = {"_parse_error": raw}
+                calls.append({"id": tc.get("id"), "name": fn.get("name"),
+                              "arguments": args})
+            return {"content": msg.get("content") or "", "tool_calls": calls,
+                    "finish_reason": ch.get("finish_reason")}
+        except Exception:
+            return None
 
 def _extract_json(text: str) -> dict[str, Any] | None:
     text = text.strip()

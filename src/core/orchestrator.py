@@ -286,3 +286,80 @@ def chat(req: ChatRequest) -> ChatResponse:
 def settings_metric_name(metric_id: str) -> str:
     from .config import semantic
     return semantic()["metrics"].get(metric_id, {}).get("name", metric_id)
+
+
+
+def chat_fc(req: ChatRequest) -> ChatResponse:
+    """function calling 版主流程：模型选工具 -> 执行 -> 回填 -> 再决策。"""
+    import json
+    from .config import today
+    from .llm import get_provider
+    from .permission import load_user, PermissionDenied, scope_label
+    from . import dispatcher, tool_schemas
+    from ..observability import trace, metrics
+
+    turn_id = trace.new_turn()
+    metrics.incr("query")
+    try:
+        user = load_user(req.user_id)
+    except PermissionDenied as e:
+        return ChatResponse(session_id="", answer_type="error", text=str(e),
+                            trace_id=turn_id)
+
+    provider = get_provider()
+    if not provider.supports_tools:
+        return ChatResponse(session_id="", answer_type="error",
+                            text="当前 provider 不支持 function calling", trace_id=turn_id)
+
+    system = (
+        "你是零售取数 Agent。必须调用工具回答，不要反问用户，不要自己编答案。"
+        f"今天是 {today().isoformat()}。用户可见范围：{scope_label(user)}。"
+        "用户说'近7日'指含今天在内最近7天：date_start=今天减6天，date_end=今天，"
+        "换算成 YYYY-MM-DD 再调用 query_metrics。"
+        "问物流时效查 logistics，问绩效查 performance，其余查 retail。"
+        "用户说导出/下载就调 export_result，说看明细/展开就调 drilldown_detail，"
+        "说查历史就调 query_history。导出和下钻必须先调 query_metrics 拿到结果。"
+        "不要编造指标 id。"
+    )
+    messages = [{"role": "system", "content": system},
+                {"role": "user", "content": req.query}]
+
+    last_result = None
+    for rnd in range(1, dispatcher.MAX_ROUNDS + 1):
+        resp = provider.complete_with_tools(messages, tool_schemas.tools_schema())
+        if resp is None:
+            break
+        calls = resp.get("tool_calls") or []
+        trace.decision(turn_id, rnd, calls, resp.get("finish_reason"))
+        if not calls:
+            break
+        messages.append({"role": "assistant", "content": resp.get("content") or "",
+                         "tool_calls": [
+                             {"id": c.get("id"), "type": "function",
+                              "function": {"name": c.get("name"),
+                                           "arguments": json.dumps(c.get("arguments") or {},
+                                                                   ensure_ascii=False)}}
+                             for c in calls]})
+        for c in calls:
+            out = dispatcher.execute(turn_id, rnd, c, user)
+            messages.append({"role": "tool", "tool_call_id": c.get("id"),
+                             "content": json.dumps(out, ensure_ascii=False)})
+            if c.get("name") == "query_metrics" and out["status"] == "ok":
+                last_result = out["result"]
+        if rnd == dispatcher.MAX_ROUNDS:
+            metrics.incr("tool_round_limit")
+
+    if last_result is None:
+        return ChatResponse(
+            session_id="", answer_type="fallback",
+            text="这次没能确定要查的业务线和指标，请补充（如'零售线近7日各城市有效订单量'）。",
+            trace_id=turn_id,
+        )
+    return ChatResponse(
+        session_id="", answer_type="result",
+        text=f"查到 {last_result['row_count']} 行。SQL：{last_result['sql']}",
+        sql=last_result["sql"], columns=last_result["columns"],
+        rows=last_result["rows"], row_count=last_result["row_count"],
+        trace_id=turn_id,
+    )
+

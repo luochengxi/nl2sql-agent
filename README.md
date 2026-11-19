@@ -9,6 +9,11 @@
 > 这样权限有唯一注入点、SQL 可解释可审计、换模型不影响查询质量，也更好测试。
 > 完整原理见 [技术方案拆解.md](技术方案拆解.md)。
 
+> **双执行通道**：默认的 `/api/chat` 是确定性编排（规则主导 + LLM 填槽）；
+> 另有 `/api/chat-fc` 走 **function calling**——由模型自主选择并调用工具，编排层只负责执行、
+> 打点与兜底。后者是 Agent 工具调用与轨迹评测的对象，详见
+> [架构与编排设计](docs/Agent架构与编排设计.md) 与 [Tools 函数文档](docs/Tools函数文档.md)。
+
 ---
 
 ## 快速开始
@@ -88,6 +93,19 @@ python3 -m venv .venv
 | 口径管理后台（产品 + 运营维护） | `src/core/caliber_admin.py` + `/api/calibers` |
 | 结果缓存 | `src/core/orchestrator.py`（缺陷模式下自动禁用） |
 
+### Function calling 通道（Agent 评测对象）
+| 能力 | 实现位置 |
+| --- | --- |
+| 模型自主选工具（OpenAI tools 协议） | `src/core/llm.py:complete_with_tools` + `src/core/tool_schemas.py` |
+| 工具注册 + 参数 Schema 校验 | `src/core/tool_schemas.py`（7 个能力工具） |
+| 工具执行器 + 上下文隔离 | `src/core/dispatcher.py`（`_TURN_CTX` 按 turn 隔离） |
+| 模型驱动循环（选→执行→回填→再决策） | `src/core/orchestrator.py:chat_fc` |
+| 双层执行轨迹（decision / tool_call） | `src/observability/trace.py` + `/api/trace/{turn_id}` |
+
+7 个工具：`query_metrics` / `search_caliber` / `compare_period` / `get_data_dictionary` /
+`export_result` / `drilldown_detail` / `query_history`。其中导出与下钻是**有上下文依赖**的
+后置工具——必须先取数写入 turn 上下文才能执行，用来评测"缺失调用 / 依赖链"类问题。
+
 ---
 
 ## 架构
@@ -148,8 +166,9 @@ nl2sql-agent/
 │   ├── export/      CSV / Excel 导出
 │   └── api/         FastAPI 接口
 ├── web/             独立对话页
-├── docs/            需求说明书 / 测试设计引导 /（本地）缺陷答案 key
-└── tests/           留空 —— 测试由项目所有者自行设计
+├── docs/            PRD / 能力契约 / 架构编排 / Tools / Prompt 快照 / Guardrail
+│                    需求说明书 / 测试设计引导 /（本地）缺陷答案 key
+└── tests/           测试由项目所有者自行设计
 ```
 
 ---
@@ -201,6 +220,13 @@ NL2SQL_DEFECT_MODE=ALL ./.venv/bin/python -m uvicorn src.api.main:app --port 800
 | [需求说明书.md](docs/需求说明书.md) | 产品能力边界、FR/NFR、v1.1 已锁定决策 |
 | [技术方案拆解.md](技术方案拆解.md) | 每个技术决策的「怎么做 / 为什么 / 好处」 |
 | [测试设计引导.md](docs/测试设计引导.md) | 能力域与测试方向（不含缺陷位置） |
+| **Agent 文档体系（面向评测 / 简历）** | |
+| [PRD业务需求文档.md](docs/PRD业务需求文档.md) | 业务场景、用户输入范围、输出契约、合规、验收标准 |
+| [Agent能力契约.md](docs/Agent能力契约.md) | 必须做 / 禁止做 / 需审批边界、禁止动作清单 |
+| [Agent架构与编排设计.md](docs/Agent架构与编排设计.md) | 状态机、多轮流转、记忆、循环终止、防死循环、双层 trace |
+| [Tools函数文档.md](docs/Tools函数文档.md) | 7 个工具的 Schema / 权限 / 依赖 / 幂等 / 错误码 / 超时重试 |
+| [SystemPrompt版本快照.md](docs/SystemPrompt版本快照.md) | Prompt 原文归档、版本登记、测试绑定规范 |
+| [Guardrail安全规则文档.md](docs/Guardrail安全规则文档.md) | 输入过滤 / 输出审核 / 脱敏 / 注入防护 / 拒绝话术 |
 
 ## 长期路线（本期不做，v1.1 已锁定）
 

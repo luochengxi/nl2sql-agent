@@ -77,6 +77,7 @@ class ChatResponse(BaseModel):
     drilldown_token: str | None = None
     dim_columns: list[str] = Field(default_factory=list)  # 前端表格下钻用的物理列名
     suggestions: list[str] = Field(default_factory=list)
+    trace_id: str = ""
 
 
 class AuditEvent(BaseModel):

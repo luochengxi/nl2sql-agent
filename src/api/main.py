@@ -144,6 +144,19 @@ def api_audit(limit: int = 200):
 def api_metrics():
     return metrics.snapshot()
 
+@app.post("/api/chat-fc", response_model=ChatResponse)
+def api_chat_fc(req: ChatRequest):
+    from ..core.orchestrator import chat_fc
+    return chat_fc(req)
+
+
+
+@app.get("/api/trace/{turn_id}")
+def api_trace(turn_id: str):
+    from ..observability import trace
+    return trace.turn(turn_id)
+
+
 
 # ---------------- F16 口径管理后台 ----------------
 @app.get("/api/calibers")
