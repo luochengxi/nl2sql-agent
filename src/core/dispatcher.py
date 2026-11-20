@@ -28,6 +28,16 @@ def reset_ctx(turn_id: str | None = None) -> None:
         _TURN_CTX.clear()
 
 
+def get_ctx(turn_id: str | None = None) -> dict:
+    """读取 turn 上下文快照（编排层补齐响应字段用）。
+
+    返回副本，避免调用方改动污染工具链状态。
+    """
+    if not turn_id:
+        return {}
+    return dict(_TURN_CTX.get(turn_id, {}))
+
+
 def _handlers() -> dict:
     """工具名 -> 执行函数。集中在这里，注册新工具只改这一处。"""
     from .config import business_lines, semantic

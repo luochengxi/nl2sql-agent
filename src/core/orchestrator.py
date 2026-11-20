@@ -314,7 +314,7 @@ def chat_fc(req: ChatRequest) -> ChatResponse:
     system = (
         "你是零售取数 Agent。必须调用工具回答，不要反问用户，不要自己编答案。"
         f"今天是 {today().isoformat()}。用户可见范围：{scope_label(user)}。"
-        "用户说'近7日'指含今天在内最近7天：date_start=今天减6天，date_end=今天，"
+        "用户说'近7日'指含从昨日起在内最近7天：比如今天是T, date_start=T-7，date_end=T-1，"
         "换算成 YYYY-MM-DD 再调用 query_metrics。"
         "问物流时效查 logistics，问绩效查 performance，其余查 retail。"
         "用户说导出/下载就调 export_result，说看明细/展开就调 drilldown_detail，"
@@ -355,11 +355,38 @@ def chat_fc(req: ChatRequest) -> ChatResponse:
             text="这次没能确定要查的业务线和指标，请补充（如'零售线近7日各城市有效订单量'）。",
             trace_id=turn_id,
         )
+    # 出口：从 turn 上下文取全量结果（dispatcher 给模型的只是 rows[:5] 摘要），
+    # 补齐 web 渲染所需字段，使 chat-fc 与旧 chat 的响应结构一致。
+    ctx = dispatcher.get_ctx(turn_id)
+    full = ctx.get("last_result")
+    plan = ctx.get("last_plan")
+    if full is None or plan is None:
+        return ChatResponse(session_id="", answer_type="fallback",
+                            text="取数完成但上下文已丢失，请重试。", trace_id=turn_id)
+
+    export_token = create_export_token(
+        user.user_id, full.columns, full.rows, last_result["sql"], plan.caliber_refs
+    )
+    drilldown_token = create_drilldown_token(plan, user)
+    dim_columns = []
+    for d in plan.dimensions:
+        dcfg = semantic()["dimensions"].get(d, {})
+        dim_columns.append(dcfg.get("column") or "date")
+
     return ChatResponse(
         session_id="", answer_type="result",
-        text=f"查到 {last_result['row_count']} 行。SQL：{last_result['sql']}",
-        sql=last_result["sql"], columns=last_result["columns"],
-        rows=last_result["rows"], row_count=last_result["row_count"],
+        text=_summarize(plan, full, [], user),
+        sql=last_result["sql"], columns=full.columns,
+        rows=full.rows, row_count=len(full.rows),
+        chart=_chart_spec(plan, full),
+        confidence=plan.confidence,
+        plan=plan.model_dump(),
+        caliber_refs=plan.caliber_refs,
+        explanation=plan.explanation,
+        export_token=export_token,
+        drilldown_token=drilldown_token,
+        dim_columns=dim_columns,
+        suggestions=_suggestions(plan),
         trace_id=turn_id,
     )
 
