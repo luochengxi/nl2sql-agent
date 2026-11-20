@@ -217,7 +217,7 @@ NL2SQL_DEFECT_MODE=ALL ./.venv/bin/python -m uvicorn src.api.main:app --port 800
 
 | 文档 | 内容 |
 | --- | --- |
-| [需求说明书.md](docs/需求说明书.md) | 产品能力边界、FR/NFR、v1.1 已锁定决策 |
+| [需求说明书.md](docs/需求说明书.md) | 产品能力边界、FR/NFR、v1.1 锁定决策 + §9–§14 Agent 专项契约（v1.2） |
 | [技术方案拆解.md](技术方案拆解.md) | 每个技术决策的「怎么做 / 为什么 / 好处」 |
 | [测试设计引导.md](docs/测试设计引导.md) | 能力域与测试方向（不含缺陷位置） |
 | **Agent 文档体系（面向评测 / 简历）** | |
@@ -227,6 +227,8 @@ NL2SQL_DEFECT_MODE=ALL ./.venv/bin/python -m uvicorn src.api.main:app --port 800
 | [Tools函数文档.md](docs/Tools函数文档.md) | 7 个工具的 Schema / 权限 / 依赖 / 幂等 / 错误码 / 超时重试 |
 | [SystemPrompt版本快照.md](docs/SystemPrompt版本快照.md) | Prompt 原文归档、版本登记、测试绑定规范 |
 | [Guardrail安全规则文档.md](docs/Guardrail安全规则文档.md) | 输入过滤 / 输出审核 / 脱敏 / 注入防护 / 拒绝话术 |
+| [黄金数据集说明.md](docs/黄金数据集说明.md) | 61 条 Golden Dataset 的字段 Schema / 覆盖矩阵 / 软硬断言分工 |
+| `tests/golden/golden_cases.jsonl` | 冻结的黄金用例（可直接参数化加载），`.yaml` 为同源可读版 |
 
 ## 长期路线（本期不做，v1.1 已锁定）
 

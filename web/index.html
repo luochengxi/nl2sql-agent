@@ -99,7 +99,7 @@
 </head>
 <body>
 <header>
-  <div class="brand"><span class="logo">数</span> 零售取数 Agent <small>NL2SQL · v1.1</small></div>
+  <div class="brand"><span class="logo">数</span> 零售取数 Agent <small>NL2SQL · v1.2 · Function Calling</small></div>
   <div class="controls">
     <label>账号 <select id="userSel"></select></label>
     <label>业务线 <select id="blSel"><option value="">自动识别</option></select></label>
@@ -191,8 +191,8 @@ async function send(){
     const body={user_id:state.userId, query:q};
     if(state.sessionId) body.session_id=state.sessionId;
     const bl=$('blSel').value; if(bl) body.business_line=bl;
-    const r=await api('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    state.sessionId=r.session_id; state.last=r;
+    const r=await api('/api/chat-fc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    state.last=r;
     addMsg('bot', r.text, r.answer_type);
     if(r.suggestions && r.suggestions.length) setSuggestions(r.suggestions);
     if(r.answer_type==='result') renderResult(r);
@@ -222,6 +222,7 @@ function renderResult(r){
         <div class="toolbar">
           <button class="icon-btn" id="expCsv">导出 CSV</button>
           <button class="icon-btn" id="expXlsx">导出 Excel</button>
+          <button class="icon-btn" id="traceBtn">调用链路</button>
           <button class="icon-btn" id="fbUp">赞</button>
           <button class="icon-btn" id="fbDown">踩</button>
         </div>
@@ -242,6 +243,7 @@ function renderResult(r){
   renderTable(r);
   $('expCsv').onclick=()=>doExport('csv');
   $('expXlsx').onclick=()=>doExport('xlsx');
+  $('traceBtn').onclick=()=>showTrace(r.trace_id);
   $('fbUp').onclick=()=>doFeedback('up');
   $('fbDown').onclick=()=>doFeedback('down');
 }
@@ -366,6 +368,27 @@ async function drilldown(r, row){
       <div class="meta" style="margin-top:10px"><pre style="font-size:11px">${esc(d.sql)}</pre></div>`;
     showModal('明细下钻', html);
   }catch(e){ toast('下钻失败：'+e.message); }
+}
+/* ---------- Function Calling 调用链路 ---------- */
+async function showTrace(tid){
+  if(!tid) return toast('本次响应无 trace_id');
+  try{
+    const tr=await api('/api/trace/'+encodeURIComponent(tid));
+    if(!tr.length) return toast('该 turn 暂无链路记录');
+    const rows=tr.map(r=>{
+      const kind=r.kind==='decision'?'决策':'执行';
+      const name=r.kind==='decision'?(r.selected||[]).join(', ')||'（结束）':esc(r.tool_name);
+      const detail=r.kind==='decision'
+        ? `finish_reason=${esc(r.finish_reason||'')}`
+        : `status=<b style="color:${r.status==='ok'?'var(--green)':'var(--red)'}">${esc(r.status)}</b>`+
+          ` · ${esc(r.latency_ms)}ms`+
+          (r.error?` · ${esc(r.error)}`:'')+
+          (r.tool_args?'<pre style="margin-top:6px;font-size:11px">'+esc(JSON.stringify(r.tool_args,null,2))+'</pre>':'');
+      return `<div class="card"><div class="card-h"><span>轮 ${esc(r.round)} · ${kind}</span><span>${name}</span></div>`+
+             `<div class="card-b meta">${detail}</div></div>`;
+    }).join('');
+    showModal('调用链路 · '+esc(tid), `<div class="meta">决策=模型想调什么；执行=dispatcher 实际做了什么。</div>${rows}`);
+  }catch(e){ toast('链路加载失败：'+e.message); }
 }
 function showModal(title, html){ $('modalTitle').textContent=title; $('modalBody').innerHTML=html; $('modal').classList.add('show'); }
 $('modalClose').onclick=()=>$('modal').classList.remove('show');

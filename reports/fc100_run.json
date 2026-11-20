@@ -1,0 +1,199 @@
+{
+  "meta": {
+    "runner": "run_fc100.py",
+    "golden": "tests/golden/golden_cases_fc100.jsonl",
+    "golden_name": "golden_cases_fc100.jsonl",
+    "run_at": "2026-11-20T15:40:34",
+    "anchor_t": "2026-11-03",
+    "provider": "openai_like",
+    "endpoint": "POST /api/chat-fc",
+    "trace_endpoint": "GET /api/trace/{trace_id}",
+    "soft_samples": 5
+  },
+  "summary": {
+    "total": 1,
+    "pass": 1,
+    "fail": 0,
+    "pass_rate": 100.0,
+    "elapsed_s": 13.4
+  },
+  "cases": [
+    {
+      "id": "HP-003",
+      "category": "happy_path",
+      "expected_action": "result",
+      "query": "近30日 按区域 订单量",
+      "focus": [
+        "focus-3"
+      ],
+      "business_line": "retail",
+      "user_id": "U001",
+      "note": "六维覆盖: 指标order_cnt/维度region/窗口r30；rows_exact 生成时冻结",
+      "verdict": "PASS",
+      "fail_reasons": [],
+      "trace_id": "8592f72a43cb",
+      "trace_url": "GET /api/trace/8592f72a43cb",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/8592f72a43cb | python -m json.tool",
+      "soft": null,
+      "resp": {
+        "answer_type": "result",
+        "text": "查到 4 行，指标：订单量。\n· 华东：订单量=1306\n· 华北：订单量=811\n· 华南：订单量=880\n…… 其余 1 行见下方表格。\n时间口径：2026-10-04 ~ 2026-11-02（自定义）\n可见范围：全部数据",
+        "sql": "SELECT region_name AS \"区域\", COUNT(*) AS \"订单量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY region_name\nORDER BY 1",
+        "row_count": 4,
+        "rows_head": [
+          [
+            "华东",
+            1306
+          ],
+          [
+            "华北",
+            811
+          ],
+          [
+            "华南",
+            880
+          ],
+          [
+            "华西",
+            843
+          ]
+        ],
+        "suggestions": [
+          "按天看趋势",
+          "换成销售额 / 客单价对比",
+          "查看零售线明细",
+          "导出 CSV / Excel"
+        ],
+        "confidence": 0.9
+      },
+      "trace": {
+        "decisions": [
+          {
+            "round": 1,
+            "selected": [
+              "query_metrics"
+            ],
+            "finish_reason": "tool_calls",
+            "raw": [
+              {
+                "id": "call_ff89555dbe064eae9ff8a07f",
+                "name": "query_metrics",
+                "arguments": {
+                  "business_line": "retail",
+                  "metrics": [
+                    "order_cnt"
+                  ],
+                  "dimensions": [
+                    "region"
+                  ],
+                  "date_start": "2026-10-04",
+                  "date_end": "2026-11-02"
+                }
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "selected": [],
+            "finish_reason": "stop",
+            "raw": []
+          }
+        ],
+        "tool_calls": [
+          {
+            "round": 1,
+            "tool_name": "query_metrics",
+            "tool_args": {
+              "business_line": "retail",
+              "metrics": [
+                "order_cnt"
+              ],
+              "dimensions": [
+                "region"
+              ],
+              "date_start": "2026-10-04",
+              "date_end": "2026-11-02"
+            },
+            "status": "ok",
+            "tool_return": {
+              "row_count": 4,
+              "columns": [
+                "区域",
+                "订单量"
+              ],
+              "rows": [
+                [
+                  "华东",
+                  1306
+                ],
+                [
+                  "华北",
+                  811
+                ],
+                [
+                  "华南",
+                  880
+                ],
+                [
+                  "华西",
+                  843
+                ]
+              ],
+              "sql": "SELECT region_name AS \"区域\", COUNT(*) AS \"订单量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY region_name\nORDER BY 1",
+              "view": "v_retail_order"
+            },
+            "error": null,
+            "latency_ms": 10.36
+          }
+        ],
+        "n_decisions": 2,
+        "n_tool_calls": 1
+      },
+      "expected": {
+        "verdict": {
+          "answer_type": "result",
+          "sql_must": [
+            "\"区域\"",
+            "\"订单量\"",
+            "BETWEEN",
+            "COUNT(*)",
+            "order_date",
+            "region_name",
+            "v_retail_order"
+          ],
+          "rows_exact": {
+            "华东": 1306,
+            "华北": 811,
+            "华南": 880,
+            "华西": 843
+          },
+          "row_count": 4,
+          "no_tool_status": [
+            "error"
+          ],
+          "note": "六维覆盖: 指标order_cnt/维度region/窗口r30；rows_exact 生成时冻结"
+        },
+        "expected_tools": [
+          {
+            "name": "query_metrics",
+            "args_contract": {
+              "business_line": "retail",
+              "metrics": [
+                "order_cnt"
+              ],
+              "dimensions": [
+                "region"
+              ],
+              "date_start": "2026-10-04",
+              "date_end": "2026-11-02"
+            },
+            "required": true,
+            "order": 1
+          }
+        ]
+      },
+      "runner_error": null,
+      "elapsed_ms": 13424.4
+    }
+  ]
+}
