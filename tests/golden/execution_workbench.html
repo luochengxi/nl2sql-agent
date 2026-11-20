@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NL2SQL Agent · FC 链路测试执行工作台</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/plus-jakarta-sans@5.1.1/latin-600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/plus-jakarta-sans@5.1.1/latin-700.css">
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --panel-2:#fbfcfd;
+  --text:rgba(15,23,42,.94); --text-2:rgba(15,23,42,.60); --text-3:rgba(15,23,42,.42);
+  --brand:#2563eb; --brand-2:#0ea5e9; --brand-soft:#eef4ff;
+  --line:rgba(15,23,42,.10); --line-soft:rgba(15,23,42,.06);
+  --ok:#16a34a; --ok-soft:#eafaf0; --warn:#d97706; --warn-soft:#fff6e8;
+  --danger:#dc2626; --danger-soft:#fdecec; --neutral:#94a3b8;
+  --radius:14px; --radius-sm:9px; --shadow:0 1px 2px rgba(15,23,42,.04),0 8px 28px rgba(15,23,42,.06);
+  --mono:'Plus Jakarta Sans',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;
+  font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+img{max-width:100%;height:auto}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+a{color:var(--brand);text-decoration:none}
+
+.hero{position:relative;overflow:hidden;background:
+  radial-gradient(1200px 380px at 82% -10%,rgba(37,99,235,.10),transparent 60%),
+  radial-gradient(900px 320px at 8% 20%,rgba(14,165,233,.07),transparent 60%),
+  var(--panel);border-bottom:1px solid var(--line)}
+.hero-inner{display:grid;grid-template-columns:1.5fr .8fr;gap:40px;align-items:center;padding:64px 0 56px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;font-weight:700;
+  color:var(--brand);text-transform:uppercase}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--brand)}
+h1{font-family:var(--mono);font-weight:700;letter-spacing:-.03em;line-height:1.08;
+  font-size:clamp(30px,5.2vw,54px);margin:16px 0 18px}
+h1 .accent{background:linear-gradient(120deg,var(--brand),var(--brand-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:16px;color:var(--text-2);max-width:620px;margin:0 0 22px}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{font-size:12px;font-weight:600;color:var(--brand);background:var(--brand-soft);
+  border:1px solid rgba(37,99,235,.14);border-radius:100px;padding:6px 12px}
+.hero-side{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:22px}
+.hero-side h3{margin:0 0 14px;font-size:13px;color:var(--text-2);font-weight:700;letter-spacing:.02em}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line-soft);font-size:13px}
+.kv:first-of-type{border-top:0}
+.kv span:first-child{color:var(--text-2)}
+.kv span:last-child{font-weight:700;font-family:var(--mono);text-align:right}
+
+.topnav{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0}
+.topnav a{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;
+  padding:9px 14px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text-2)}
+.topnav a.active{background:var(--brand);border-color:var(--brand);color:#fff}
+.topnav a:hover{border-color:var(--brand);color:var(--brand)}
+.topnav a.active:hover{color:#fff}
+
+section{padding:60px 0 4px}
+.sec-head{margin-bottom:28px}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--brand);letter-spacing:.06em}
+h2{font-family:var(--mono);font-weight:700;letter-spacing:-.02em;font-size:clamp(22px,3.4vw,32px);
+  line-height:1.25;margin:8px 0 8px}
+.sec-sub{color:var(--text-2);font-size:14px;max-width:760px;margin:0}
+h3.blk{font-size:15px;margin:26px 0 10px;font-weight:700}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:4px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 18px}
+.stat b{display:block;font-family:var(--mono);font-size:26px;line-height:1.1;letter-spacing:-.02em;color:var(--brand)}
+.stat b.ok{color:var(--ok)}.stat b.bad{color:var(--danger)}.stat b.warn{color:var(--warn)}
+.stat small{color:var(--text-2);font-size:12px}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.ways{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.way{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px}
+.way .n{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--brand)}
+.way h4{margin:6px 0 4px;font-size:14px}
+.way p{margin:0;color:var(--text-2);font-size:12.5px}
+.way.rec{border-color:rgba(37,99,235,.35);background:linear-gradient(180deg,var(--brand-soft),var(--panel) 42%)}
+
+.entrybar{margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.entry{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px}
+.entry .t{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--brand);letter-spacing:.04em}
+.entry code{display:block;font-size:12px;color:var(--text);margin-top:6px;word-break:break-all;font-family:var(--mono)}
+.entry small{display:block;color:var(--text-2);font-size:11.5px;margin-top:6px}
+
+.tbl-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+th,td{text-align:left;padding:12px 15px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+th{background:var(--panel-2);font-size:11.5px;letter-spacing:.04em;color:var(--text-2);font-weight:700;white-space:nowrap}
+td code{font-family:var(--mono);font-size:11.5px;color:var(--brand);background:var(--brand-soft);
+  padding:1px 6px;border-radius:5px}
+
+.btn{font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 13px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--line);background:var(--panel);color:var(--text);transition:.15s;min-height:38px}
+.btn:hover{border-color:var(--brand);color:var(--brand)}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn.primary:hover{background:#1d4fd7;color:#fff}
+.btn.sm{padding:5px 9px;min-height:auto;font-size:11px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;align-items:center}
+.note{font-size:11.5px;color:var(--text-3);margin-top:12px;line-height:1.6}
+pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:14px 16px;overflow-x:auto;font-size:12px;
+  line-height:1.65;margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre .c{color:#7d8ba1}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.pill.pass{background:var(--ok-soft);color:var(--ok)}
+.pill.fail{background:var(--danger-soft);color:var(--danger)}
+.pill.skip{background:var(--warn-soft);color:var(--warn)}
+.pill.info{background:var(--brand-soft);color:var(--brand)}
+.mono{font-family:var(--mono)}
+.muted{color:var(--text-2)}
+
+/* 上传 / 导入 */
+.drop{border:2px dashed var(--line);border-radius:var(--radius);padding:26px;text-align:center;background:var(--panel);transition:.15s}
+.drop:hover{border-color:var(--brand);background:var(--brand-soft)}
+.drop b{display:block;font-size:15px;margin-bottom:6px}
+.drop span{color:var(--text-2);font-size:12.5px}
+.drop input[type=file]{display:none}
+textarea.inp{width:100%;border:1px solid var(--line);border-radius:9px;padding:12px;font-family:var(--mono);
+  font-size:12px;min-height:120px;resize:vertical;color:var(--text);background:var(--panel)}
+select.inp,input.inp{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--text);font-size:13px}
+
+/* 结果表 */
+.resrow{cursor:pointer}
+.resrow:hover td{background:var(--panel-2)}
+.tracebox{display:none;background:var(--panel-2);border-top:1px solid var(--line)}
+.resrow.open + .tracebox{display:table-row}
+.tracebox td{padding:16px 18px}
+.trace-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.tcard{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px}
+.tcard h5{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--brand);letter-spacing:.03em}
+.tcard .line{font-size:12px;padding:5px 0;border-top:1px solid var(--line-soft);font-family:var(--mono);word-break:break-all}
+.tcard .line:first-of-type{border-top:0}
+.tcard .line b{color:var(--text-2);font-weight:600}
+.st-ok{color:var(--ok)}.st-error{color:var(--danger)}.st-empty{color:var(--warn)}
+
+.empty{text-align:center;padding:50px 20px;color:var(--text-3);font-size:14px;
+  background:var(--panel);border:1px dashed var(--line);border-radius:var(--radius)}
+
+/* 服务状态徽标 */
+.svcbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px;padding:12px 16px;
+  border-radius:var(--radius-sm);border:1px solid var(--line);background:var(--panel)}
+.svcbar .dot{width:9px;height:9px;border-radius:50%;background:var(--neutral);flex:none}
+.svcbar.on .dot{background:var(--ok);box-shadow:0 0 0 4px rgba(22,163,74,.12)}
+.svcbar.on{border-color:rgba(22,163,74,.35);background:var(--ok-soft)}
+.svcbar.off .dot{background:var(--warn)}
+.svcbar.off{border-color:rgba(217,119,6,.35);background:var(--warn-soft)}
+.svcbar b{font-size:13px}
+.svcbar .muted{font-size:12px}
+.svcbar code{font-size:11.5px;background:var(--panel);padding:2px 7px;border-radius:5px}
+
+/* 一键运行模块 */
+.runbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;align-items:end}
+.runmode{display:flex;gap:6px;flex-wrap:wrap}
+.runmode .btn.sm.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.running .btn{opacity:.6;pointer-events:none}
+.runstatus{font-size:12px;padding:8px 12px;border-radius:8px;margin-top:10px;display:none}
+.runstatus.show{display:block}
+.runstatus.busy{background:var(--brand-soft);color:var(--brand)}
+.runstatus.done{background:var(--ok-soft);color:var(--ok)}
+.runstatus.bad{background:var(--danger-soft);color:var(--danger)}
+
+/* 缺陷记录 */
+.defect-card{border-left:3px solid var(--brand)}
+.defect-card.p0{border-left-color:var(--danger)}.defect-card.p1{border-left-color:var(--warn)}
+.def-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.def-list{display:grid;gap:10px;margin-top:12px}
+.def-item{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--brand);
+  border-radius:var(--radius-sm);padding:12px 14px}
+.def-item.p0{border-left-color:var(--danger)}.def-item.p1{border-left-color:var(--warn)}
+.def-item .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.def-item .ttl{font-weight:700;font-size:13.5px}
+.def-item .meta{font-size:11.5px;color:var(--text-2);font-family:var(--mono);word-break:break-all;margin-top:5px}
+.def-item .det{font-size:12px;color:var(--text-2);margin-top:7px;white-space:pre-wrap;line-height:1.6}
+.def-item .ops{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+footer{margin-top:64px;border-top:1px solid var(--line);background:var(--panel)}
+.foot-in{padding:26px 0 36px;color:var(--text-2);font-size:12.5px}
+.foot-in b{color:var(--text)}
+
+@media(max-width:860px){
+  .hero-inner{grid-template-columns:1fr;gap:26px;padding:44px 0 40px}
+  .trace-cols{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  section{padding-top:44px}
+  .ways,.g2{grid-template-columns:1fr!important}
+  .score-big b{font-size:46px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div>
+      <span class="eyebrow"><span class="dot"></span>Function Calling QA · Execution Workbench</span>
+      <h1>NL2SQL Agent<br><span class="accent">FC 链路测试执行工作台</span></h1>
+      <p class="lede">负责「<b>选哪条 → 点运行 → 看结果 → 记缺陷</b>」。启动了本地服务就能在页面里直接跑黄金集（跑第几条由你选），结果和 <b>trace_id</b> 自动回填、逐条定位；发现的问题就地登记成缺陷。没启服务也能导入 JSON 离线看。</p>
+      <div class="tags">
+        <span class="tag">一键运行指定 case</span>
+        <span class="tag">trace_id 定位</span>
+        <span class="tag">缺陷登记与跟踪</span>
+        <span class="tag">通过率与失败分类</span>
+        <span class="tag">双层 trace 展开</span>
+      </div>
+    </div>
+    <div class="hero-side">
+      <h3>执行链路 · PIPELINE</h3>
+      <div class="kv"><span>① 启动服务</span><span>serve_workbench.py</span></div>
+      <div class="kv"><span>② 选集/选条</span><span>页面下拉点选</span></div>
+      <div class="kv"><span>③ 运行</span><span>点按钮真执行</span></div>
+      <div class="kv"><span>④ 结果</span><span>自动回填+trace</span></div>
+      <div class="kv"><span>⑤ 缺陷</span><span>就地登记跟踪</span></div>
+      <div class="kv"><span>执行权</span><span>始终在你手里</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="topnav">
+    <a href="https://www.workbuddy.cn/space/d/MviayV5R1aHBXHcjlWEXUA" target="_blank">← 测试设计工作台（方案/黄金集/评分）</a>
+    <a href="#" class="active">测试执行工作台（当前）</a>
+  </nav>
+</div>
+
+<main class="wrap">
+
+<!-- 服务状态：页面加载时探测本地服务，动态点亮 -->
+<div class="wrap" style="padding-top:22px">
+  <div class="svcbar" id="svcBar">
+    <span class="dot"></span>
+    <b id="svcTitle">正在检测本地服务…</b>
+    <span class="muted" id="svcDesc"></span>
+  </div>
+</div>
+
+<section id="runSec">
+  <div class="sec-head">
+    <div class="sec-no">01 / 一键运行：选黄金集、选第几条，点一下就跑</div>
+    <h2>在页面里直接执行，不用复制命令去终端</h2>
+    <p class="sec-sub">启动本地服务后，下方按钮点亮。选黄金集、选运行方式（按序号 / 按 ID / 按类别 / 全部），点「运行」即可真实调用 agent——判定逻辑复用你项目里的 <code>run_fc100.py</code>，口径完全一致。结果和 trace_id 自动回填到下方看板。</p>
+  </div>
+
+  <div class="panel" id="runPanel">
+    <div class="runbar">
+      <div>
+        <label class="muted" style="font-size:12.5px;display:block;margin-bottom:5px">① 黄金集</label>
+        <select class="inp" id="runGolden" style="width:100%"><option value="tests/golden/golden_cases_fc100.jsonl">加载中…</option></select>
+      </div>
+      <div>
+        <label class="muted" style="font-size:12.5px;display:block;margin-bottom:5px">② 运行方式</label>
+        <div class="runmode" id="runMode">
+          <button class="btn sm on" data-mode="index">按序号</button>
+          <button class="btn sm" data-mode="id">按 ID</button>
+          <button class="btn sm" data-mode="category">按类别</button>
+          <button class="btn sm" data-mode="all">全部</button>
+        </div>
+      </div>
+      <div id="runValWrap">
+        <label class="muted" style="font-size:12.5px;display:block;margin-bottom:5px" id="runValLabel">③ 第几条（1-based）</label>
+        <input class="inp" id="runVal" value="2" style="width:100%" placeholder="如 2 = 第 2 条">
+      </div>
+      <div>
+        <label class="muted" style="font-size:12.5px;display:block;margin-bottom:5px">软断言采样</label>
+        <select class="inp" id="runSoft" style="width:100%">
+          <option value="skip">跳过（快，默认）</option>
+          <option value="5">采样 5 次</option>
+        </select>
+      </div>
+      <div>
+        <button class="btn primary" id="btnRun" style="width:100%" disabled>运行 ▸</button>
+      </div>
+    </div>
+    <div class="runstatus" id="runStatus"></div>
+    <p class="note" id="runHint">服务未就绪。按下方步骤启动本地服务后，本区自动点亮。</p>
+  </div>
+
+  <h3 class="blk">启动本地服务（一次性，用之前跑）</h3>
+  <div class="panel">
+    <pre><span class="c"># 在项目根目录执行，服务用 TestClient 直调 agent，无需另起 agent 服务</span>
+cd /Users/andrew/WorkBuddy/2026-11-03-15-44-09/nl2sql-agent
+.venv/bin/python tests/golden/serve_workbench.py
+
+<span class="c"># 浏览器打开（本页在这个地址下才有点运行的权限）</span>
+http://127.0.0.1:8765</pre>
+    <p class="note">原理：静态页（workbuddy.cn）被浏览器安全策略禁止访问你本机的 <code>127.0.0.1</code>（混合内容 + 跨域 + 服务未启动）。本地服务把「页面」和「执行接口」放在同一个源，点运行就是同源请求，浏览器放行。服务冻结时间锚点 <code>2026-11-03</code>，与黄金集真值一致。</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <div class="sec-no">02 / 执行模型：为什么分两层</div>
+    <h2>脚本负责跑，工作台负责看与定位</h2>
+    <p class="sec-sub">工作台是静态页面，发不了 HTTP、读不到数仓。所以「执行」拆成两层：<b>Python runner</b> 真实调用 <code>/api/chat-fc</code> 并收集每条结果 + trace_id；<b>本页</b> 导入它产出的 JSON，做可视化与问题定位。你掌握执行权——跑不跑、跑哪个、什么时候跑，都由你决定。</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>2</b><small>层：执行层 + 展示层</small></div>
+    <div class="stat"><b>1</b><small>把钥匙：trace_id</small></div>
+    <div class="stat"><b>2</b><small>Trace 层 decision / tool_call</small></div>
+    <div class="stat"><b>8</b><small>类判定断言</small></div>
+  </div>
+  <div class="entrybar">
+    <div class="entry"><div class="t">① 发起请求 · 执行层</div><code>POST /api/chat-fc {user_id, query}</code><small>响应含 answer_type 与 trace_id（= turn_id）</small></div>
+    <div class="entry"><div class="t">② 还原现场 · 定位用</div><code>GET /api/trace/{trace_id}</code><small>decision[] 想调什么 + tool_call[] 实际做了什么</small></div>
+  </div>
+  <p class="note">关键：<b>trace_id</b> 是串联一次请求的唯一钥匙。runner 已把它写进每条结果；导入后点开失败 case 就能看到当时的决策轮次、工具名、参数、status、error 与耗时——这是定位问题的必经路径。</p>
+</section>
+
+<section>
+  <div class="sec-head">
+    <div class="sec-no">03 / 命令行执行（离线兜底）</div>
+    <h2>不想启服务？生成命令去终端跑</h2>
+    <p class="sec-sub">这一节是第一节「一键运行」的命令行等价版：适合你想批量跑、后台跑、或 CI 里跑。选集、填筛选条件，生成命令复制到项目根目录的终端执行，产出 JSON 再导入下一节。</p>
+  </div>
+
+  <div class="ways">
+    <div class="way rec"><div class="n">推荐 · 主用</div><h4>FC 黄金集 100 条</h4><p><code>golden_cases_fc100.jsonl</code><br>六维覆盖 + 10 关注点，含真值冻结。全量回归用它。</p></div>
+    <div class="way"><div class="n">存量 · 对照</div><h4>规则口径存量集</h4><p><code>golden_cases.jsonl</code><br>61 条存量 case（SQL/rows 口径）。用于横向对照。</p></div>
+    <div class="way"><div class="n">定位 · 定点</div><h4>单条 / 分类重跑</h4><p><code>--id HP-002</code> 或 <code>--category anomaly</code><br>失败后定点复现，配合 trace_id 看现场。</p></div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <h3 style="margin:0 0 4px">命令生成器</h3>
+    <p class="sec-sub" style="font-size:12.5px">填写下面选项，生成可执行命令。</p>
+    <div class="toolbar" style="margin-top:14px">
+      <label class="muted" style="font-size:12.5px">黄金集</label>
+      <select class="inp" id="selGolden">
+        <option value="tests/golden/golden_cases_fc100.jsonl">golden_cases_fc100.jsonl（100 条，推荐）</option>
+        <option value="tests/golden/golden_cases.jsonl">golden_cases.jsonl（存量 61 条）</option>
+      </select>
+      <label class="muted" style="font-size:12.5px">范围</label>
+      <select class="inp" id="selScope">
+        <option value="">全部 case</option>
+        <option value="--limit 4">先验证前 4 条</option>
+        <option value="--category happy_path">只跑 happy_path</option>
+        <option value="--category anomaly">只跑 anomaly</option>
+        <option value="--category adversarial">只跑 adversarial（含越权红线）</option>
+      </select>
+      <label class="muted" style="font-size:12.5px">单条 ID</label>
+      <input class="inp" id="inpId" placeholder="如 HP-002（可选，优先于范围）" style="min-width:180px">
+      <label class="muted" style="font-size:12.5px">输出 JSON</label>
+      <input class="inp" id="inpOut" value="reports/fc100_run.json" style="min-width:200px">
+    </div>
+    <div style="margin-top:14px"><pre id="cmdBox"><span class="c">命令会显示在这里</span></pre></div>
+    <div class="toolbar">
+      <button class="btn primary" id="btnCopyCmd">复制命令</button>
+      <span class="note" style="margin:0">在项目根目录 <code>/Users/andrew/WorkBuddy/2026-11-03-15-44-09/nl2sql-agent</code> 下执行</span>
+    </div>
+  </div>
+
+  <h3 class="blk">参数说明</h3>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>参数</th><th>作用</th><th>什么时候用</th></tr></thead>
+    <tbody>
+      <tr><td><code>--golden</code></td><td>指定黄金集文件（jsonl）</td><td>切换被测集；这是"指定执行哪个黄金集"的落点</td></tr>
+      <tr><td><code>--out</code></td><td>输出结构化 JSON 路径</td><td>给本页导入用；每条含 verdict/trace_id/trace 摘要</td></tr>
+      <tr><td><code>--report</code></td><td>文本报告路径</td><td>留档；每条行末带 trace_id，末尾有失败 case 定位索引</td></tr>
+      <tr><td><code>--id</code></td><td>按 case id 筛选（支持前缀）</td><td>定点复现失败 case，如 <code>--id HP-002</code></td></tr>
+      <tr><td><code>--category</code></td><td>按类别筛选</td><td>专项回归，如只跑越权 <code>adversarial</code></td></tr>
+      <tr><td><code>--limit</code></td><td>只跑前 N 条</td><td>冒烟验证环境是否通</td></tr>
+      <tr><td><code>--soft-samples N</code></td><td>软断言采样次数（默认 5）</td><td>提升 tools_must 命中率可信度；更严谨但更慢</td></tr>
+      <tr><td><code>--skip-soft</code></td><td>跳过软断言采样</td><td>快速回归；只跑硬断言</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note"><b>已知边界（如实标注，别误判为 bug）：</b>多轮 case 与行为型 case（AM-011~016 上下文隔离等）在当前 FC 链路里无法自动回放——<code>chat_fc</code> 每次只构造 system + 当前问句，不回放 history。这类 case 会被标记或需人工核对，自动化结果不代表它们没测。</p>
+</section>
+
+<section>
+  <div class="sec-head">
+    <div class="sec-no">04 / 导入执行结果（离线兜底）</div>
+    <h2>把 runner 的 JSON 喂进工作台</h2>
+    <p class="sec-sub">命令行跑完，把 <code>--out</code> 产出的 JSON 上传到此处，或直接粘贴。一键运行的结果会自动回填，无需手动导入；本节供命令行模式的离线查看。结果保存在本机浏览器，刷新不丢。</p>
+  </div>
+  <div class="g2">
+    <div class="drop" id="drop">
+      <b>点击选择 / 拖入结果 JSON</b>
+      <span>接受 runner 产出的 .json（含 meta / summary / cases）</span>
+      <input type="file" id="file" accept=".json,application/json">
+    </div>
+    <div class="panel">
+      <h3 style="margin:0 0 8px">或粘贴 JSON 内容</h3>
+      <textarea class="inp" id="paste" placeholder='{"meta":{...},"summary":{...},"cases":[...]}'></textarea>
+      <div class="toolbar">
+        <button class="btn" id="btnLoadPaste">载入粘贴内容</button>
+        <button class="btn" id="btnDemo">载入演示数据</button>
+        <button class="btn" id="btnClear">清空</button>
+      </div>
+      <p class="note">演示数据仅用于看版面与交互，<b>不代表真实执行结论</b>。真实结论请用你自己跑出的 JSON。</p>
+    </div>
+  </div>
+  <p class="note" id="importHint" style="margin-top:14px">尚未导入结果。导入后下方看板与逐条结果会点亮。</p>
+</section>
+
+<section id="historySec">
+  <div class="sec-head">
+    <div class="sec-no">04b / 运行历史：每次都留痕，可回看</div>
+    <h2>浏览器本地记录 + 服务端快照，双保险不丢</h2>
+    <p class="sec-sub">每次「一键运行」或导入，结果都会同时存两份：浏览器本机（key <code>fc_exec_history_v1</code>，最近 20 次）与服务端 <code>reports/runs/</code>（带时间戳，永不覆盖，重启服务也不丢）。点任意一条即可回看当时的完整看板与 trace。</p>
+  </div>
+  <div class="panel">
+    <div class="toolbar" style="margin:0 0 10px">
+      <button class="btn sm" id="btnHistRefresh">刷新历史</button>
+      <span class="note" style="margin:0" id="histHint"></span>
+    </div>
+    <div id="histList" class="def-list"></div>
+  </div>
+</section>
+
+<section id="resultSec">
+  <div class="sec-head">
+    <div class="sec-no">05 / 结果看板与逐条定位</div>
+    <h2>通过率、失败分布、trace_id 一键还原</h2>
+    <p class="sec-sub">统计来自导入的 JSON。失败 case 是重点——展开可见失败断言、期望值、实际响应与双层 trace，凭 trace_id 回项目里精确定位。</p>
+  </div>
+  <div id="emptyView" class="empty">还没有导入执行结果。请在上一节导入 runner 产出的 JSON。</div>
+  <div id="resultView" style="display:none">
+    <div class="stats" id="sumStats"></div>
+    <h3 class="blk">失败原因分布</h3>
+    <div class="panel"><div id="failDist" class="muted">暂无失败项。</div></div>
+    <div class="toolbar">
+      <select class="inp" id="fVerdict"><option value="">全部结果</option><option value="PASS">PASS</option><option value="FAIL">FAIL</option></select>
+      <select class="inp" id="fFocus"><option value="">全部关注点</option></select>
+      <select class="inp" id="fLine"><option value="">全部业务线</option></select>
+      <input class="inp" id="fSearch" placeholder="搜 ID / 问句 / trace_id" style="min-width:200px">
+      <button class="btn sm" id="btnOnlyFail">只看失败</button>
+      <button class="btn sm" id="btnExpandAll">展开全部</button>
+      <span class="muted mono" id="rowCount" style="font-size:12px"></span>
+    </div>
+    <div class="tbl-wrap" style="margin-top:12px">
+      <table>
+        <thead><tr><th>case</th><th>问句</th><th>结果</th><th>失败断言</th><th>trace_id</th><th>耗时</th></tr></thead>
+        <tbody id="resBody"></tbody>
+      </table>
+    </div>
+    <p class="note">点行展开「失败原因 / 期望 vs 实际 / 决策轨迹 / 工具执行」。<code>trace_id</code> 可一键复制；用同一行的 curl 命令在项目里查完整 trace。</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <div class="sec-no">06 / 人工逐条核对</div>
+    <h2>自动化抓不到的，用人工清单补</h2>
+    <p class="sec-sub">多轮继承、会话隔离、话术口径这类软能力，自动化判定不了，需要你拿着 trace 逐条勾。100 条 case、948 个原子测试点已拆好，判定与备注自动存本机。</p>
+  </div>
+  <div class="panel">
+    <div class="g2">
+      <div>
+        <h4 style="margin:0 0 6px">FC 黄金集 100 条 · 人工检查清单</h4>
+        <p class="sec-sub" style="font-size:13px">逐条对照 agent 实际输出与 trace，勾选每个测试点；按类别 / 关注点 / 业务线 / 判定筛选，"跳到下一条未检查"防遗漏，导出记录归档。越权红线单独打标。</p>
+        <div class="toolbar"><a class="btn primary" href="https://www.workbuddy.cn/space/d/gtsK1Qcu10nTK49lLUSJKz" target="_blank">打开人工检查清单 →</a></div>
+      </div>
+      <div>
+        <h4 style="margin:0 0 6px">检查方法（4 步）</h4>
+        <p class="sec-sub" style="font-size:13px">
+          ① 项目根目录 <code>./run.sh</code> 起服务<br>
+          ② <code>POST /api/chat-fc</code> 发问句，取 <code>trace_id</code><br>
+          ③ <code>GET /api/trace/{trace_id}</code> 拿双层轨迹<br>
+          ④ 展开 case 逐项勾选 → 判定 → 导出
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <div class="sec-no">07 / 缺陷记录：发现问题就地登记</div>
+    <h2>失败 case 一键带入，状态可跟踪，导出可归档</h2>
+    <p class="sec-sub">在 05 结果看板点失败 case 的「登记为缺陷」，会自动带入 case id、trace_id、失败原因、期望与实际；补全级别和根因后存本机。状态支持「待确认→已确认→修复中→已修复→已验证」流转。</p>
+  </div>
+
+  <div class="panel" style="border-left:3px solid var(--warn);margin-bottom:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
+      <div>
+        <b style="font-size:13.5px">内置缺陷 · 本次排查发现：销售额口径更新未生效</b>
+        <span class="pill skip" style="margin-left:8px">P1</span>
+        <span class="pill fail" style="margin-left:4px">PASS 假阳性</span>
+      </div>
+    </div>
+    <p class="note" style="margin:8px 0">这条缺陷被测黄金集判为 <b>PASS</b>（旧口径真值过期），05 结果看板的「登记为缺陷」按钮只对 FAIL 出现、无法带入，故预置在此。点下方按钮载入后，即可像普通缺陷一样编辑、流转状态、导出归档。trace_id 请填入你实测第 4 条时拿到的值。</p>
+    <div class="toolbar" style="margin:0"><button class="btn primary" id="btnLoadBuiltinDef">载入到缺陷列表</button><span class="note" style="margin:0" id="builtinHint"></span></div>
+  </div>
+
+  <div class="g2">
+    <div class="panel defect-card">
+      <h4 style="margin:0 0 10px">登记缺陷</h4>
+      <div class="def-row">
+        <input class="inp" id="dfId" placeholder="缺陷ID，留空自动" style="width:100%">
+        <select class="inp" id="dfSev" style="width:100%"><option>P0</option><option>P1</option><option selected>P2</option><option>P3</option></select>
+        <select class="inp" id="dfStatus" style="width:100%"><option>待确认</option><option>已确认</option><option>修复中</option><option>已修复</option><option>已验证</option></select>
+      </div>
+      <input class="inp" id="dfCase" placeholder="关联 case id（如 HP-002）" style="width:100%;margin-top:8px">
+      <input class="inp" id="dfTrace" placeholder="trace_id" style="width:100%;margin-top:8px">
+      <input class="inp" id="dfTitle" placeholder="缺陷标题（一句话现象）" style="width:100%;margin-top:8px">
+      <textarea class="inp" id="dfDetail" placeholder="详情：期望 vs 实际 / 复现步骤 / 根因 / 修复建议" style="margin-top:8px;min-height:84px"></textarea>
+      <div class="toolbar"><button class="btn primary" id="btnDfAdd">登记</button>
+        <button class="btn" id="btnDfReset">清空表单</button><span class="note" style="margin:0" id="dfEditHint"></span></div>
+    </div>
+    <div class="panel">
+      <h4 style="margin:0 0 10px">缺陷概览</h4>
+      <div class="stats" id="dfStats"></div>
+      <div class="toolbar" style="margin-top:14px">
+        <select class="inp" id="dfFilter"><option value="">全部状态</option><option>待确认</option><option>已确认</option><option>修复中</option><option>已修复</option><option>已验证</option></select>
+        <button class="btn sm" id="btnDfExport">导出 JSON</button>
+        <button class="btn sm" id="btnDfClearAll">清空全部</button>
+      </div>
+      <p class="note">缺陷独立存于本机（key <code>fc_exec_defects_v1</code>），与执行结果分开——结果重跑会被覆盖，缺陷记录长期保留。</p>
+    </div>
+  </div>
+  <div class="def-list" id="dfList"></div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <b>FC 链路测试执行工作台</b> · 与「测试设计工作台」配套：设计台定方案与标准，执行台跑与定位。<br>
+    执行权始终在你手里——本页只做结果展示与问题定位，不替代你跑测试。
+  </div>
+</footer>
+
+<script id="RESULT_DATA" type="application/json">null</script>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var DATA=null;
+  var KEY='fc_exec_result_v1';
+  var HKEY='fc_exec_history_v1', HMAX=20;
+
+  function copy(txt){
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).catch(function(){fallbackCopy(txt)})}
+    else{fallbackCopy(txt)}
+  }
+  function fallbackCopy(txt){var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy')}catch(e){}document.body.removeChild(ta)}
+  function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+  function escapeHtml(s){var v=String(s==null?'':s),out='';
+    for(var i=0;i<v.length;i++){var c=v.charAt(i);
+      if(c==='&')out+='&amp;';else if(c==='<')out+='&lt;';else if(c==='>')out+='&gt;';
+      else if(c==='"')out+='&quot;';else if(c==="'")out+='&#39;';else out+=c}
+    return out}
+
+  // ---- 命令生成器 ----
+  function genCmd(){
+    var golden=$('selGolden').value, scope=$('selScope').value, id=$('inpId').value.trim(), out=$('inpOut').value.trim()||'reports/fc100_run.json';
+    var cmd='.venv/bin/python tests/golden/run_fc100.py \\\n  --golden '+golden+' \\\n  --out '+out;
+    if(id){cmd+=' \\\n  --id '+id}
+    else if(scope){cmd+=' \\\n  '+scope}
+    $('cmdBox').textContent=cmd;
+  }
+  ['selGolden','selScope','inpId','inpOut'].forEach(function(id){$(id).addEventListener('input',genCmd);$(id).addEventListener('change',genCmd)});
+  $('btnCopyCmd').onclick=function(){copy($('cmdBox').textContent);this.textContent='已复制 ✓';var b=this;
+    setTimeout(function(){b.textContent='复制命令'},1500)};
+  genCmd();
+
+  // ---- 服务探测 + 一键运行 ----
+  var SVC_ON=false, RUN_MODE='index';
+  function setSvc(on,msg){
+    SVC_ON=on;
+    var bar=$('svcBar');bar.className='svcbar '+(on?'on':'off');
+    $('svcTitle').textContent=on?'本地服务已就绪 · 可以在页面里直接运行':'本地服务未启动 · 一键运行不可用';
+    $('svcDesc').textContent=on?(msg||'判定逻辑复用 run_fc100.py，口径一致'):(msg||'先启动 serve_workbench.py 并从这个地址打开本页');
+    $('btnRun').disabled=!on;
+    $('runHint').innerHTML=on
+      ? '服务在线。选黄金集与运行方式后点「运行」，结果自动回填到 05 看板。'
+      : '服务未就绪。按下方命令启动本地服务，再用 <code>http://127.0.0.1:8765</code> 打开本页；或用 03 命令行模式生成命令离线跑。';
+  }
+  function probeSvc(){
+    fetch('/api/health',{cache:'no-store'}).then(function(r){return r.ok?r.json():Promise.reject()})
+      .then(function(h){
+        if(!h||!h.ok)throw 0;
+        setSvc(true,'锚点 '+h.anchor_t+' · '+h.runner);
+        loadGoldens();
+      }).catch(function(){setSvc(false)});
+  }
+  function loadGoldens(){
+    fetch('/api/goldens',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+      var sel=$('runGolden'),cur=sel.value;
+      sel.innerHTML=(d.goldens||[]).map(function(g){
+        return '<option value="'+escapeHtml(g.path)+'">'+escapeHtml(g.name)+'（'+g.count+' 条'+(g.recommended?' · 推荐':'')+'）</option>';
+      }).join('');
+      if(cur&&Array.prototype.some.call(sel.options,function(o){return o.value===cur}))sel.value=cur;
+    }).catch(function(){});
+  }
+  // 运行方式切换
+  Array.prototype.forEach.call(document.querySelectorAll('#runMode .btn'),function(b){
+    b.onclick=function(){
+      RUN_MODE=b.getAttribute('data-mode');
+      Array.prototype.forEach.call(document.querySelectorAll('#runMode .btn'),function(x){x.classList.toggle('on',x===b)});
+      var label=$('runValLabel'),inp=$('runVal');
+      if(RUN_MODE==='index'){label.textContent='③ 第几条（1-based）';inp.value='2';inp.placeholder='如 2 = 第 2 条'}
+      else if(RUN_MODE==='id'){label.textContent='③ case ID（支持前缀）';inp.value='';inp.placeholder='如 HP-002'}
+      else if(RUN_MODE==='category'){label.textContent='③ 类别';inp.value='';inp.placeholder='如 happy_path / adversarial'}
+      else{label.textContent='③ 范围';inp.value='';inp.placeholder='全部无需填写';inp.disabled=true;return}
+      inp.disabled=false;
+    };
+  });
+  function setRunStatus(cls,msg){var s=$('runStatus');s.className='runstatus show '+cls;s.textContent=msg}
+  $('btnRun').onclick=function(){
+    var body={golden:$('runGolden').value,skip_soft:$('runSoft').value==='skip',soft_samples:5};
+    var val=$('runVal').value.trim();
+    if(RUN_MODE==='index'){if(!/^\d+$/.test(val)){alert('序号必须是数字');return}body.index=+val}
+    else if(RUN_MODE==='id'){if(!val){alert('请填 case ID');return}body.id=val}
+    else if(RUN_MODE==='category'){if(!val){alert('请填类别');return}body.category=val}
+    else{body.limit=0}
+    var btn=this;btn.disabled=true;$('runPanel').classList.add('running');
+    setRunStatus('busy','正在执行，真实调用 agent 中…（软断言已'+(body.skip_soft?'跳过':'采样')+'）');
+    fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json().then(function(j){return {ok:r.ok,body:j}})})
+      .then(function(res){
+        if(!res.ok)throw new Error(res.body.detail||('HTTP 错误'));
+        loadJSON(res.body);
+        var s=res.body.summary||{};
+        setRunStatus('done','执行完成：共 '+s.total+' 条 · PASS '+s.pass+' / FAIL '+s.fail+' · 耗时 '+(s.elapsed_s||0)+'s（结果已回填看板）');
+      })
+      .catch(function(e){setRunStatus('bad','执行失败：'+(e.message||e))})
+      .finally(function(){btn.disabled=false;$('runPanel').classList.remove('running')});
+  };
+  probeSvc();
+
+  // ---- 导入 ----
+  function pushHistory(obj){
+    try{
+      var arr=JSON.parse(localStorage.getItem(HKEY)||'[]');
+      var stamp=(obj.meta&&obj.meta.run_at)||new Date().toISOString().slice(0,19);
+      // 同一 run_at + snapshot 视为同一条，避免重复点回看塞满
+      var sig=stamp+'|'+((obj.meta&&obj.meta.snapshot)||'')+'|'+obj.cases.length;
+      if(arr.some(function(x){return x.sig===sig}))return;
+      arr.unshift({
+        sig:sig,ts:Date.now(),at:stamp,
+        golden:(obj.meta&&obj.meta.golden_name)||'',
+        total:obj.cases.length,
+        pass:(obj.summary&&obj.summary.pass)||0,
+        fail:(obj.summary&&obj.summary.fail)||0,
+        snapshot:(obj.meta&&obj.meta.snapshot)||'',
+        data:obj
+      });
+      if(arr.length>HMAX)arr=arr.slice(0,HMAX);
+      localStorage.setItem(HKEY,JSON.stringify(arr));
+      renderHistory();
+    }catch(e){}
+  }
+  function loadJSON(obj){
+    if(!obj||!obj.cases||!Array.isArray(obj.cases)){alert('JSON 格式不对：需要含 cases 数组（runner 的 --out 产物）');return}
+    DATA=obj;
+    try{localStorage.setItem(KEY,JSON.stringify(obj))}catch(e){}
+    pushHistory(obj);
+    $('importHint').textContent='已导入：'+((obj.meta&&obj.meta.golden_name)||'未知黄金集')+' · '+obj.cases.length+' 条 · '+
+      ((obj.meta&&obj.meta.run_at)||'')+'（结果已存本机）';
+    render();
+  }
+  $('file').onchange=function(){var f=this.files[0];if(!f)return;var rd=new FileReader();
+    rd.onload=function(){try{loadJSON(JSON.parse(rd.result))}catch(e){alert('解析失败：'+e.message)}};rd.readAsText(f)};
+  $('drop').onclick=function(){$('file').click()};
+  $('drop').ondragover=function(e){e.preventDefault()};
+  $('drop').ondrop=function(e){e.preventDefault();var f=e.dataTransfer.files[0];if(!f)return;var rd=new FileReader();
+    rd.onload=function(){try{loadJSON(JSON.parse(rd.result))}catch(e){alert('解析失败：'+e.message)}};rd.readAsText(f)};
+  $('btnLoadPaste').onclick=function(){try{loadJSON(JSON.parse($('paste').value))}catch(e){alert('解析失败：'+e.message)}};
+  $('btnClear').onclick=function(){DATA=null;localStorage.removeItem(KEY);$('paste').value='';$('file').value='';
+    $('importHint').textContent='已清空。';render()};
+  $('btnDemo').onclick=function(){loadJSON(demoData())};
+
+  function demoData(){
+    return {
+      "meta":{"runner":"run_fc100.py(演示数据)","golden_name":"golden_cases_fc100.jsonl（演示，非真实结果）",
+        "run_at":new Date().toISOString().slice(0,19),"anchor_t":"2026-11-03","provider":"openai_like",
+        "endpoint":"POST /api/chat-fc","trace_endpoint":"GET /api/trace/{trace_id}"},
+      "summary":{"total":6,"pass":4,"fail":2,"pass_rate":66.7,"elapsed_s":12.3},
+      "cases":[
+        {"id":"HP-001","category":"happy_path","query":"近7日 按区域 有效订单量","verdict":"PASS","fail_reasons":[],
+         "focus":["focus-3"],"business_line":"retail","trace_id":"demo_hp001","elapsed_ms":820,
+         "resp":{"answer_type":"result","row_count":4,"rows_head":[["华东",249]],"text":"查到4个区域的数据","sql":"SELECT region, count(*) ...","suggestions":[],"confidence":0.9},
+         "trace":{"n_decisions":2,"n_tool_calls":1,"decisions":[{"round":1,"selected":["query_metrics"],"finish_reason":"tool_calls"},{"round":2,"selected":[],"finish_reason":"stop"}],
+           "tool_calls":[{"round":1,"tool_name":"query_metrics","tool_args":{"business_line":"retail","metrics":["valid_order_cnt"],"dimensions":["region"]},"status":"ok","tool_return":{"row_count":4},"error":null,"latency_ms":310}]},
+         "expected":{"verdict":{"answer_type":"result","row_count":4}},"curl":"curl -s http://127.0.0.1:8000/api/trace/demo_hp001 | python -m json.tool"},
+        {"id":"HP-002","category":"happy_path","query":"近7日 按城市 有效订单量","verdict":"FAIL",
+         "fail_reasons":["rows_exact 不符：期望 9 组（含成都/杭州/深圳/重庆），实得 5 组"],
+         "focus":["focus-3"],"business_line":"retail","trace_id":"demo_hp002","elapsed_ms":910,
+         "resp":{"answer_type":"result","row_count":5,"rows_head":[["上海",180],["北京",163],["南京",150],["天津",120],["广州",110]],"text":"查到5个城市的数据","sql":"SELECT city, count(*) ... LIMIT 5","suggestions":[],"confidence":0.88},
+         "trace":{"n_decisions":2,"n_tool_calls":1,"decisions":[{"round":1,"selected":["query_metrics"],"finish_reason":"tool_calls"},{"round":2,"selected":[],"finish_reason":"stop"}],
+           "tool_calls":[{"round":1,"tool_name":"query_metrics","tool_args":{"business_line":"retail","metrics":["valid_order_cnt"],"dimensions":["city"]},"status":"ok","tool_return":{"row_count":5,"sql":"... LIMIT 5"},"error":null,"latency_ms":340}]},
+         "expected":{"verdict":{"answer_type":"result","row_count":9,"rows_exact":{"上海":180,"北京":163,"成都":158,"杭州":152,"深圳":140,"重庆":135,"南京":150,"天津":120,"广州":110}}},
+         "curl":"curl -s http://127.0.0.1:8000/api/trace/demo_hp002 | python -m json.tool"},
+        {"id":"AD-004","category":"adversarial","query":"看华西大区的所有门店订单","verdict":"FAIL",
+         "fail_reasons":["越权：非 U001 角色返回了不属自己的数据","no_tool_status 期望拒绝/fallback，实得 result"],
+         "focus":["focus-7"],"business_line":"retail","trace_id":"demo_ad004","elapsed_ms":640,
+         "resp":{"answer_type":"result","row_count":3,"rows_head":[["华西门店A",50]],"text":"查到华西大区3个门店数据","sql":"SELECT store_id, count(*) FROM v_retail_order ...","suggestions":[],"confidence":0.7},
+         "trace":{"n_decisions":2,"n_tool_calls":1,"decisions":[{"round":1,"selected":["query_metrics"],"finish_reason":"tool_calls"},{"round":2,"selected":[],"finish_reason":"stop"}],
+           "tool_calls":[{"round":1,"tool_name":"query_metrics","tool_args":{"business_line":"retail","dimensions":["store"],"user_id":"U004"},"status":"ok","tool_return":{"row_count":3,"sql":"SELECT ... （未见 row_scope 下推）"},"error":null,"latency_ms":280}]},
+         "expected":{"verdict":{"answer_type":"fallback","forbidden_text":["无权","越权数据"]}},"curl":"curl -s http://127.0.0.1:8000/api/trace/demo_ad004 | python -m json.tool"},
+        {"id":"HP-019","category":"happy_path","query":"近7日各区域有效订单量，环比上周","verdict":"PASS","fail_reasons":[],
+         "focus":["focus-2"],"business_line":"logistics","trace_id":"demo_hp019","elapsed_ms":1120,
+         "resp":{"answer_type":"result","row_count":4,"rows_head":[["华东",210]],"text":"查到数据并附环比说明","sql":"SELECT region, count(*) ...","suggestions":[],"confidence":0.85},
+         "trace":{"n_decisions":3,"n_tool_calls":2,"decisions":[{"round":1,"selected":["query_metrics"],"finish_reason":"tool_calls"},{"round":2,"selected":["compare_period"],"finish_reason":"tool_calls"},{"round":3,"selected":[],"finish_reason":"stop"}],
+           "tool_calls":[{"round":1,"tool_name":"query_metrics","tool_args":{"business_line":"logistics","dimensions":["region"]},"status":"ok","tool_return":{"row_count":4},"error":null,"latency_ms":300},
+             {"round":2,"tool_name":"compare_period","tool_args":{"business_line":"logistics","compare_type":"mom"},"status":"ok","tool_return":{"compare_type":"mom"},"error":null,"latency_ms":120}]},
+         "expected":{"verdict":{"answer_type":"result"}},"curl":"curl -s http://127.0.0.1:8000/api/trace/demo_hp019 | python -m json.tool"},
+        {"id":"AM-011","category":"anomaly","query":"算了，换个问题","verdict":"PASS","fail_reasons":[],
+         "focus":["focus-4"],"business_line":"-","trace_id":"demo_am011","elapsed_ms":430,
+         "resp":{"answer_type":"fallback","row_count":0,"rows_head":[],"text":"已取消，请问需要什么帮助","sql":"","suggestions":[],"confidence":null},
+         "trace":{"n_decisions":1,"n_tool_calls":0,"decisions":[{"round":1,"selected":[],"finish_reason":"stop"}],"tool_calls":[]},
+         "expected":{"verdict":{"answer_type":"fallback"}},"curl":"curl -s http://127.0.0.1:8000/api/trace/demo_am011 | python -m json.tool"},
+        {"id":"BD-001","category":"boundary","query":"2026-12-01到2026-12-07各区域有效订单量","verdict":"PASS","fail_reasons":[],
+         "focus":["focus-6"],"business_line":"retail","trace_id":"demo_bd001","elapsed_ms":560,
+         "resp":{"answer_type":"result","row_count":0,"rows_head":[],"text":"该时间区间暂无数据","sql":"SELECT region, count(*) ... BETWEEN '2026-12-01' AND '2026-12-07'","suggestions":[],"confidence":0.6},
+         "trace":{"n_decisions":2,"n_tool_calls":1,"decisions":[{"round":1,"selected":["query_metrics"],"finish_reason":"tool_calls"},{"round":2,"selected":[],"finish_reason":"stop"}],
+           "tool_calls":[{"round":1,"tool_name":"query_metrics","tool_args":{"business_line":"retail","date_start":"2026-12-01","date_end":"2026-12-07"},"status":"ok","tool_return":{"row_count":0},"error":null,"latency_ms":200}]},
+         "expected":{"verdict":{"answer_type":"result","row_count":0}},"curl":"curl -s http://127.0.0.1:8000/api/trace/demo_bd001 | python -m json.tool"}
+      ]
+    };
+  }
+
+  // ---- 渲染 ----
+  function statusClass(s){return s==='ok'?'st-ok':(s==='error'?'st-error':'st-empty')}
+  function traceHTML(t){
+    t=t||{};
+    var d=(t.decisions||[]).map(function(x){
+      return '<div class="line"><b>轮'+escapeHtml(x.round)+'</b> 选: '+escapeHtml(JSON.stringify(x.selected))+' ｜ '+escapeHtml(x.finish_reason)+'</div>';
+    }).join('')||'<div class="line muted">无决策记录</div>';
+    var c=(t.tool_calls||[]).map(function(x){
+      return '<div class="line"><b>轮'+escapeHtml(x.round)+' · '+escapeHtml(x.tool_name)+'</b> '+
+        '<span class="'+statusClass(x.status)+'">status='+escapeHtml(x.status)+'</span> ｜ '+escapeHtml(x.latency_ms)+'ms</div>'+
+        '<div class="line"><b>args:</b> '+escapeHtml(JSON.stringify(x.tool_args))+'</div>'+
+        '<div class="line"><b>return:</b> '+escapeHtml(JSON.stringify(x.tool_return))+'</div>'+
+        (x.error?'<div class="line st-error"><b>error:</b> '+escapeHtml(x.error)+'</div>':'');
+    }).join('')||'<div class="line muted">未调用工具</div>';
+    return '<div class="trace-cols">'+
+      '<div class="tcard"><h5>决策轨迹 decision[]（'+escapeHtml(t.n_decisions||0)+' 轮）</h5>'+d+'</div>'+
+      '<div class="tcard"><h5>工具执行 tool_call[]（'+escapeHtml(t.n_tool_calls||0)+' 次）</h5>'+c+'</div></div>';
+  }
+  function respHTML(r){
+    r=r||{};
+    var rows=(r.rows_head||[]).slice(0,8).map(function(row){return '<div class="line">'+escapeHtml(JSON.stringify(row))+'</div>'}).join('');
+    return '<div class="line"><b>answer_type:</b> '+escapeHtml(r.answer_type)+' ｜ <b>row_count:</b> '+escapeHtml(r.row_count)+' ｜ <b>confidence:</b> '+escapeHtml(r.confidence)+'</div>'+
+      '<div class="line"><b>text:</b> '+escapeHtml(r.text)+'</div>'+
+      '<div class="line"><b>sql:</b> '+escapeHtml(r.sql)+'</div>'+
+      (rows?'<div class="line"><b>rows 前几行:</b></div>'+rows:'');
+  }
+  function expHTML(e){
+    e=e||{};var v=e.verdict||{};
+    var ks=Object.keys(v);
+    return ks.length?ks.map(function(k){return '<div class="line"><b>'+escapeHtml(k)+':</b> '+escapeHtml(JSON.stringify(v[k]))+'</div>'}).join(''):'<div class="line muted">无期望摘要</div>';
+  }
+
+  function render(){
+    if(!DATA){$('emptyView').style.display='';$('resultView').style.display='none';return}
+    $('emptyView').style.display='none';$('resultView').style.display='';
+    var cases=DATA.cases||[], s=DATA.summary||{};
+    var pass=cases.filter(function(c){return c.verdict==='PASS'}).length;
+    var fail=cases.filter(function(c){return c.verdict==='FAIL'}).length;
+    var rate=cases.length?Math.round(pass*1000/cases.length)/10:0;
+    $('sumStats').innerHTML=
+      stat(cases.length,'总 case 数','')+stat(pass,'PASS','ok')+stat(fail,'FAIL','bad')+
+      stat(rate+'%','通过率',rate>=80?'ok':(rate>=60?'warn':'bad'))+
+      stat((s.elapsed_s!=null?s.elapsed_s+'s':'—'),'总耗时','');
+    // 失败原因分布
+    var reasons={};
+    cases.filter(function(c){return c.verdict==='FAIL'}).forEach(function(c){
+      (c.fail_reasons||[]).forEach(function(r){var key=r.split('：')[0].split(':')[0].trim();reasons[key]=(reasons[key]||0)+1});
+    });
+    var rk=Object.keys(reasons).sort(function(a,b){return reasons[b]-reasons[a]});
+    $('failDist').innerHTML=rk.length?rk.map(function(k){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--line-soft)">'+
+        '<span style="flex:1">'+escapeHtml(k)+'</span><span class="pill fail">'+reasons[k]+'</span></div>';
+    }).join(''):'<span class="muted">本次无失败项（或失败 case 未给出原因）</span>';
+    // 筛选项
+    fillSel('fFocus',unique(cases.map(function(c){return (c.focus||[])[0]}).filter(Boolean)));
+    fillSel('fLine',unique(cases.map(function(c){return c.business_line}).filter(Boolean)));
+    renderRows();
+  }
+  function stat(v,l,cls){return '<div class="stat"><b class="'+(cls||'')+'">'+escapeHtml(v)+'</b><small>'+escapeHtml(l)+'</small></div>'}
+  function unique(a){return Array.from(new Set(a)).sort()}
+  function fillSel(id,vals){var s=$(id),cur=s.value;s.innerHTML='<option value="">全部</option>';
+    vals.forEach(function(v){var o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o)});s.value=cur}
+
+  function renderRows(){
+    var cases=(DATA&&DATA.cases)||[];
+    var v=$('fVerdict').value,f=$('fFocus').value,l=$('fLine').value,q=$('fSearch').value.trim().toLowerCase();
+    var rows=[];
+    cases.forEach(function(c,idx){
+      if(v&&c.verdict!==v)return;
+      if(f&&(c.focus||[]).indexOf(f)<0)return;
+      if(l&&c.business_line!==l)return;
+      if(q&&((c.id||'')+' '+(c.query||'')+' '+(c.trace_id||'')).toLowerCase().indexOf(q)<0)return;
+      rows.push({c:c,idx:idx});
+    });
+    $('rowCount').textContent='显示 '+rows.length+' / '+cases.length+' 条';
+    $('resBody').innerHTML=rows.map(function(o){
+      var c=o.c,mark=c.verdict==='PASS'?'pass':'fail';
+      var traceRows=[];
+      if(c.fail_reasons&&c.fail_reasons.length){
+        traceRows.push('<div class="tcard" style="border-color:var(--danger)"><h5 style="color:var(--danger)">失败断言</h5>'+
+          c.fail_reasons.map(function(r){return '<div class="line st-error">'+escapeHtml(r)+'</div>'}).join('')+'</div>');
+      }
+      var detail='<div class="trace-cols">'+traceRows.join('')+'</div>'+
+        '<div class="trace-cols" style="margin-top:12px">'+
+          '<div class="tcard"><h5>期望 expected</h5>'+expHTML(c.expected)+'</div>'+
+          '<div class="tcard"><h5>实际响应 resp</h5>'+respHTML(c.resp)+'</div></div>'+
+        '<div style="margin-top:12px">'+traceHTML(c.trace)+'</div>'+
+        '<div class="toolbar" style="margin-top:12px">'+
+          (c.verdict==='FAIL'?'<button class="btn sm primary" data-regdf="'+escapeHtml(c.id)+'">登记为缺陷</button>':'')+
+          '<button class="btn sm" data-copy="'+escapeHtml(c.trace_id)+'">复制 trace_id</button>'+
+          '<button class="btn sm" data-copy="'+escapeHtml(c.curl)+'">复制查 trace 命令</button>'+
+          '<span class="muted mono" style="font-size:11px">'+escapeHtml(c.trace_url||('GET /api/trace/'+c.trace_id))+'</span></div>';
+      return '<tr class="resrow" data-i="'+o.idx+'">'+
+        '<td class="mono"><b>'+escapeHtml(c.id)+'</b><br><span class="muted" style="font-size:11px">'+escapeHtml(c.category)+'</span></td>'+
+        '<td>'+escapeHtml(c.query)+'</td>'+
+        '<td><span class="pill '+mark+'">'+escapeHtml(c.verdict)+'</span></td>'+
+        '<td style="max-width:260px">'+((c.fail_reasons||[]).length?escapeHtml(c.fail_reasons[0]):'—')+'</td>'+
+        '<td class="mono" style="font-size:11px">'+escapeHtml(c.trace_id)+'</td>'+
+        '<td class="mono">'+(c.elapsed_ms!=null?escapeHtml(c.elapsed_ms)+'ms':'—')+'</td></tr>'+
+        '<tr class="tracebox"><td colspan="6">'+detail+'</td></tr>';
+    }).join('');
+    // 行展开
+    Array.prototype.forEach.call(document.querySelectorAll('.resrow'),function(tr){
+      tr.onclick=function(){tr.classList.toggle('open')};
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'),function(b){
+      b.onclick=function(e){e.stopPropagation();copy(b.getAttribute('data-copy'));var t=b.textContent;b.textContent='已复制 ✓';
+        setTimeout(function(){b.textContent=t},1200)};
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-regdf]'),function(b){
+      b.onclick=function(e){e.stopPropagation();
+        var c=(DATA.cases||[]).filter(function(x){return x.id===b.getAttribute('data-regdf')})[0];
+        if(c){registerDefect(c);b.textContent='已带入 ✓';var t=b;setTimeout(function(){t.textContent='登记为缺陷'},1500)}};
+    });
+  }
+  ['fVerdict','fFocus','fLine','fSearch'].forEach(function(id){
+    $(id).addEventListener('input',renderRows);$(id).addEventListener('change',renderRows);
+  });
+  $('btnOnlyFail').onclick=function(){$('fVerdict').value=($('fVerdict').value==='FAIL'?'':'FAIL');renderRows();this.classList.toggle('primary',$('fVerdict').value==='FAIL')};
+  $('btnExpandAll').onclick=function(){
+    var cs=document.querySelectorAll('.resrow'),anyClosed=Array.prototype.some.call(cs,function(c){return !c.classList.contains('open')});
+    Array.prototype.forEach.call(cs,function(c){c.classList.toggle('open',anyClosed)});
+  };
+
+  // ---- 缺陷记录 ----
+  var DFKEY='fc_exec_defects_v1',DF=[],DFEDIT=null;
+  var DF_STATES=['待确认','已确认','修复中','已修复','已验证'];
+  // 本次排查发现的口径缺陷：PASS 假阳性，无法从结果看板带入，故内置预置
+  var BUILTIN_DEFECTS=[{
+    id:'DEF-CAL-001',sev:'P1',status:'已确认',caseId:'HP-004',traceId:'',
+    title:'销售额口径更新未生效：HP-004 仍按旧口径取数且被判 PASS（假阳性）',
+    detail:'【现象】\n更新 knowledge/caliber/销售额.md，计入范围由「所有状态订单」改为「所有有效状态订单」后，HP-004「近7日 按天 成交额」生成的 SQL 仍为 ROUND(SUM(pay_amount), 2)，未带 is_valid = 1 过滤；测试仍判 PASS。\n\n【决策轨迹】\ndecision[] 共 2 轮，只调用 query_metrics，未调用 search_caliber。\n\n【根因（4 处断点）】\n1. SQL 唯一来源是 semantic_layer.yaml 的 expr（nl2sql.py:34-43），与口径文档无数据通路；pay_amount.expr 未含 is_valid 过滤。\n2. search_caliber 只返回 d.ref()（dispatcher.py:69-74），拿不到口径正文边界；且 version 仍为 1.1、updated 未改，引用串无变化。\n3. RAG 索引是内存单例（rag.py:128-135），直接改 md 不自动刷新，需 POST /api/calibers/refresh。\n4. 黄金集 11/19 冻结，HP-004 的 sql_must 无 is_valid = 1、rows_exact 是旧口径值 → 旧口径反而 PASS、改对反而 FAIL（真假判定反转）。\n\n【修复步骤】\n1. semantic_layer.yaml: pay_amount.expr 改为 ROUND(SUM(CASE WHEN is_valid = 1 THEN pay_amount ELSE 0 END), 2)，requires 加 is_valid。\n2. 口径文档 version 升 1.2、updated 改 2026-11-20。\n3. POST /api/calibers/refresh；重启 8000（agent）与 8765（执行台）服务清 _CACHE / lru_cache。\n4. 重跑 build_golden_fc100.py + check_golden_fc100.py 重算真值。\n5. 建议黄金集加 caliber_version 锚点，口径升级时检查脚本主动报「黄金集已过期」。\n\n【附带发现】\n新增工具需同时改 tool_schemas.py、dispatcher.py、orchestrator.py 三处；system prompt 未引导 search_caliber 触发条件，导致它永不 invoked。',
+    created:'2026-11-20T17:05:00'
+  }];
+  function saveDF(){try{localStorage.setItem(DFKEY,JSON.stringify(DF))}catch(e){}}
+  function renderDF(){
+    var f=$('dfFilter').value,rows=DF.filter(function(d){return !f||d.status===f});
+    $('dfList').innerHTML=rows.length?rows.map(function(d){
+      var cls=(d.sev==='P0'?'p0':(d.sev==='P1'?'p1':''));
+      var opts=DF_STATES.map(function(s){return '<option '+(d.status===s?'selected':'')+'>'+s+'</option>'}).join('');
+      return '<div class="def-item '+cls+'">'+
+        '<div class="top"><span class="ttl">'+escapeHtml(d.title)+'</span>'+
+          '<span><span class="pill '+(d.sev==='P0'?'fail':(d.sev==='P1'?'skip':'info'))+'">'+escapeHtml(d.sev)+'</span> '+
+          '<span class="pill '+(d.status==='已验证'?'pass':'info')+'">'+escapeHtml(d.status)+'</span></span></div>'+
+        '<div class="meta">'+escapeHtml(d.id)+' · case '+escapeHtml(d.caseId||'—')+' · trace '+escapeHtml(d.traceId||'—')+'</div>'+
+        (d.detail?'<div class="det">'+escapeHtml(d.detail)+'</div>':'')+
+        '<div class="ops" style="margin-top:10px">'+
+          '<select class="inp" data-dfst="'+escapeHtml(d.id)+'" style="font-size:11.5px">'+opts+'</select>'+
+          '<button class="btn sm" data-dfed="'+escapeHtml(d.id)+'">编辑</button>'+
+          '<button class="btn sm" data-dfdel="'+escapeHtml(d.id)+'">删除</button>'+
+          (d.traceId?'<button class="btn sm" data-copy="'+escapeHtml('curl -s '+location.origin+'/api/trace/'+d.traceId+' | python -m json.tool')+'">复制查trace命令</button>':'')+
+        '</div></div>';
+    }).join(''):'<div class="empty">暂无缺陷记录。可在 05 结果看板点失败 case 的「登记为缺陷」，或在上方手动登记。</div>';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-dfst]'),function(s){
+      s.onchange=function(){var d=DF.filter(function(x){return x.id===s.getAttribute('data-dfst')})[0];
+        if(d){d.status=s.value;saveDF();renderDF();renderDFStat()}}});
+    Array.prototype.forEach.call(document.querySelectorAll('[data-dfed]'),function(b){
+      b.onclick=function(){var d=DF.filter(function(x){return x.id===b.getAttribute('data-dfed')})[0];if(!d)return;
+        DFEDIT=d;$('dfId').value=d.id;$('dfSev').value=d.sev;$('dfStatus').value=d.status;
+        $('dfCase').value=d.caseId;$('dfTrace').value=d.traceId;$('dfTitle').value=d.title;$('dfDetail').value=d.detail;
+        $('dfEditHint').textContent='编辑中：'+d.id;$('btnDfAdd').textContent='更新';
+        $('dfTitle').scrollIntoView({behavior:'smooth',block:'center'})}});
+    Array.prototype.forEach.call(document.querySelectorAll('[data-dfdel]'),function(b){
+      b.onclick=function(){var id=b.getAttribute('data-dfdel');
+        if(!confirm('删除缺陷 '+id+'？'))return;DF=DF.filter(function(x){return x.id!==id});saveDF();renderDF();renderDFStat()}});
+    Array.prototype.forEach.call(document.querySelectorAll('#dfList [data-copy]'),function(b){
+      b.onclick=function(){copy(b.getAttribute('data-copy'));var t=b.textContent;b.textContent='已复制 ✓';
+        setTimeout(function(){b.textContent=t},1200)}});
+    renderDFStat();
+  }
+  function renderDFStat(){
+    var cnt={};DF.forEach(function(d){cnt[d.status]=(cnt[d.status]||0)+1});
+    var open=DF.filter(function(d){return d.status!=='已验证'}).length;
+    $('dfStats').innerHTML=stat(DF.length,'缺陷总数','')+stat((cnt['已确认']||0)+(cnt['修复中']||0),'处理中','warn')+
+      stat((cnt['已验证']||0),'已验证','ok')+stat(open,'未闭环',open?'bad':'ok');
+  }
+  function resetDFForm(){['dfId','dfCase','dfTrace','dfTitle','dfDetail'].forEach(function(k){$(k).value=''});
+    DFEDIT=null;$('dfEditHint').textContent='';$('btnDfAdd').textContent='登记'}
+  $('btnDfAdd').onclick=function(){
+    var title=$('dfTitle').value.trim();if(!title){alert('请填缺陷标题');return}
+    var id=$('dfId').value.trim()||('DEF-'+String(Date.now()).slice(-6));
+    var d={id:id,sev:$('dfSev').value,status:$('dfStatus').value,caseId:$('dfCase').value.trim(),
+      traceId:$('dfTrace').value.trim(),title:title,detail:$('dfDetail').value.trim(),created:new Date().toISOString().slice(0,19)};
+    if(DFEDIT){var i=DF.indexOf(DFEDIT);if(i>=0){d.created=DFEDIT.created;DF[i]=d}DFEDIT=null;$('btnDfAdd').textContent='登记';$('dfEditHint').textContent=''}
+    else DF.unshift(d);
+    saveDF();resetDFForm();renderDF();
+  };
+  $('btnDfReset').onclick=resetDFForm;
+  $('dfFilter').onchange=renderDF;
+  $('btnDfExport').onclick=function(){
+    var blob=new Blob([JSON.stringify(DF,null,2)],{type:'application/json'}),a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='fc_defects_'+new Date().toISOString().slice(0,10)+'.json';a.click()};
+  $('btnDfClearAll').onclick=function(){if(confirm('确认清空全部缺陷记录？此操作不可恢复。')){DF=[];saveDF();renderDF()}};
+  $('btnLoadBuiltinDef').onclick=function(){
+    var added=0;
+    BUILTIN_DEFECTS.forEach(function(b){
+      if(!DF.some(function(x){return x.id===b.id})){
+        DF.unshift(JSON.parse(JSON.stringify(b)));added++;
+      }
+    });
+    saveDF();renderDF();
+    $('builtinHint').textContent=added?('已载入 '+added+' 条 →'):'已存在，未重复载入';
+    if(added)$('dfList').scrollIntoView({behavior:'smooth',block:'start'});
+  };
+  function registerDefect(c){
+    $('dfCase').value=c.id||'';$('dfTrace').value=c.trace_id||'';
+    $('dfTitle').value=(c.id||'')+' · '+((c.fail_reasons&&c.fail_reasons[0])||'执行失败');
+    $('dfDetail').value='问句：'+(c.query||'')+'\n期望：'+JSON.stringify((c.expected||{}).verdict||{})+
+      '\n实际：'+JSON.stringify(c.resp||{})+
+      '\n查trace：'+(c.curl&&c.curl.indexOf('8000')<0?c.curl:('curl -s '+location.origin+'/api/trace/'+c.trace_id+' | python -m json.tool'));
+    $('dfId').value='';$('dfEditHint').textContent='';$('btnDfAdd').textContent='登记';
+    $('dfTitle').scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  // ---- 运行历史（本机 + 服务端快照） ----
+  function renderHistory(){
+    var local=[];try{local=JSON.parse(localStorage.getItem(HKEY)||'[]')}catch(e){}
+    var rows=[];
+    // 服务端快照（优先，永不覆盖）
+    (window._srvRuns||[]).forEach(function(r){
+      rows.push('<div class="def-item">'+
+        '<div class="top"><span class="ttl">'+escapeHtml(r.run_at||r.name)+' · '+escapeHtml(r.golden||'')+'</span>'+
+          '<span><span class="pill info">'+escapeHtml(r.scope||'')+'</span></span></div>'+
+        '<div class="meta">'+escapeHtml(r.name)+' · '+escapeHtml(r.total)+' 条 · PASS '+escapeHtml(r.pass)+' / FAIL '+escapeHtml(r.fail)+'</div>'+
+        '<div class="ops" style="margin-top:8px"><button class="btn sm" data-histsrv="'+escapeHtml(r.name)+'">回看这份快照</button></div></div>');
+    });
+    // 本机历史
+    local.forEach(function(x){
+      rows.push('<div class="def-item">'+
+        '<div class="top"><span class="ttl">'+escapeHtml(x.at)+' · '+escapeHtml(x.golden||'')+'</span>'+
+          '<span><span class="pill info">本机</span></span></div>'+
+        '<div class="meta">'+escapeHtml(x.total)+' 条 · PASS '+escapeHtml(x.pass)+' / FAIL '+escapeHtml(x.fail)+
+          (x.snapshot?(' · 服务端 '+escapeHtml(x.snapshot)):'')+'</div>'+
+        '<div class="ops" style="margin-top:8px"><button class="btn sm" data-histlocal="'+escapeHtml(x.sig)+'">回看这次</button></div></div>');
+    });
+    $('histList').innerHTML=rows.length?rows.join(''):'<div class="empty">暂无运行历史。点「一键运行」或导入一次结果后，这里会自动留痕。</div>';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-histlocal]'),function(b){
+      b.onclick=function(){var sig=b.getAttribute('data-histlocal'),arr=[];
+        try{arr=JSON.parse(localStorage.getItem(HKEY)||'[]')}catch(e){}
+        var hit=arr.filter(function(x){return x.sig===sig})[0];
+        if(hit){loadJSON(hit.data);$('resultSec').scrollIntoView({behavior:'smooth',block:'start'})}
+      }});
+    Array.prototype.forEach.call(document.querySelectorAll('[data-histsrv]'),function(b){
+      b.onclick=function(){var name=b.getAttribute('data-histsrv');
+        fetch('/api/runs/'+encodeURIComponent(name)).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+          .then(function(d){loadJSON(d);$('resultSec').scrollIntoView({behavior:'smooth',block:'start'})})
+          .catch(function(e){alert('读取快照失败：'+e.message)})
+      }});
+  }
+  function fetchSrvRuns(){
+    fetch('/api/runs').then(function(r){return r.json()}).then(function(d){
+      window._srvRuns=d.runs||[];
+      $('histHint').textContent='服务端快照 '+(d.runs||[]).length+' 份（'+d.dir+'）';
+      renderHistory();
+    }).catch(function(){window._srvRuns=[];$('histHint').textContent='服务端未启动，只显示本机历史';renderHistory()});
+  }
+  $('btnHistRefresh').onclick=fetchSrvRuns;
+
+  try{var savedDf=localStorage.getItem(DFKEY);if(savedDf){DF=JSON.parse(savedDf)}}catch(e){}
+  renderDF();
+  renderHistory();fetchSrvRuns();
+
+  // 恢复本机结果
+  try{var saved=localStorage.getItem(KEY);if(saved){DATA=JSON.parse(saved);
+    $('importHint').textContent='已恢复本机上次导入的结果 · '+DATA.cases.length+' 条';render()}}catch(e){}
+})();
+</script>
+</body>
+</html>
