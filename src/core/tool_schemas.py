@@ -33,7 +33,7 @@ def tools_schema() -> list[dict]:
             }},
             {"type": "function", "function": {
                 "name": "compare_period",
-                "description": "查同期对比（环比/同比）。只有用户明确说环比、同比、对比时才调用。",
+                "description": "同比/环比对比：自动查对比期数据，给出每个维度每个指标的当前值、对比值、差值和增长率。只有用户明确说环比、同比、和上月比、对比时才调用。必须先调用 query_metrics 拿到本期结果，否则无法对比。compare_type: mom=环比(紧邻上一等长周期)，yoy=同比(去年同期)，dod=日环比(前一日)。",
                 "parameters": {"type": "object", "properties": {
                     "business_line": {"type": "string", "enum": bl},
                     "compare_type": {"type": "string", "enum": ["mom", "yoy", "dod"]},

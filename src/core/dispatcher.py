@@ -11,6 +11,7 @@ from . import tool_schemas
 from .executor import run
 from .nl2sql import compile
 from .rag import get_index
+from .time_parser import compare_window
 from ..observability import trace
 
 MAX_ROUNDS = 3          # 模型最多决策轮数，超过判超限
@@ -74,11 +75,75 @@ def _handlers() -> dict:
         }
 
     def compare_period(a: dict, u, ctx: dict) -> dict:
-        # 对比期数据由编排层用锚定窗口补齐，这里只回执参数
-        return {
+        """同比/环比：复用本期 plan 查对比期，按维度对齐输出当前/对比/差值/率值。
+
+        依赖 query_metrics 的 ctx 快照（last_plan + last_result），因此模型
+        必须先调 query_metrics。对比结果单独存 ctx["compare_result"]，
+        不覆盖 last_result——避免 r2 的额外 query_metrics 冲掉本期结果（HP-019）。
+        """
+        plan = ctx.get("last_plan")
+        current = ctx.get("last_result")
+        if plan is None or current is None or plan.time_range is None:
+            raise ValueError("没有可对比的本期结果，请先调用 query_metrics")
+        if plan.business_line != a["business_line"]:
+            raise ValueError(f"业务线不一致: 本期 {plan.business_line} vs 对比 {a['business_line']}")
+
+        window = compare_window(plan.time_range.start, plan.time_range.end,
+                                a["compare_type"])
+        if window is None:
+            raise ValueError(f"不支持的对比类型: {a['compare_type']}")
+        cs, ce = window
+
+        # 同一 plan，只换时间窗：权限、指标、维度、口径全沿用
+        cmp_compiled = compile(plan, u, (cs, ce))
+        cmp_result = run(cmp_compiled)
+
+        ndim = len(plan.dimensions)
+        nmetric = len(plan.metrics)
+        # 对齐策略同编排层 _merge_compare：日期按位置，其余按维度 key
+        cmap = {tuple(str(r[i]) for i in range(ndim)): r for r in cmp_result.rows}
+        positional = ("date" in plan.dimensions
+                      and len(current.rows) == len(cmp_result.rows))
+
+        rows = []
+        for idx, r in enumerate(current.rows):
+            key = tuple(str(r[i]) for i in range(ndim))
+            prev = cmp_result.rows[idx] if positional else cmap.get(key)
+            metrics = []
+            for j in range(nmetric):
+                cur_v = r[ndim + j]
+                prev_v = prev[ndim + j] if prev is not None else None
+                diff = rate = None
+                if isinstance(cur_v, (int, float)) and isinstance(prev_v, (int, float)):
+                    diff = round(cur_v - prev_v, 4)
+                    if prev_v != 0:
+                        rate = round(diff / prev_v, 4)
+                metrics.append({
+                    "metric": plan.metrics[j],
+                    "current": cur_v,
+                    "previous": prev_v,
+                    "diff": diff,
+                    "rate": rate,
+                })
+            rows.append({"dim": list(key), "metrics": metrics})
+
+        payload = {
             "compare_type": a["compare_type"],
             "business_line": a["business_line"],
-            "note": "对比期数据由编排层补齐",
+            "compare_window": {"start": cs, "end": ce},
+            "dimensions": list(plan.dimensions),
+            "columns": list(current.columns),
+            "rows": rows,
+            "sql": cmp_compiled.sql,
+            "note": "当前值/对比值按维度对齐；增长率=(当前-对比)/对比，对比期为0时为空",
+        }
+        # 全量存 turn 上下文，编排层出口据此组装响应；不写 last_result
+        ctx["compare_result"] = payload
+        return {
+            "compare_type": a["compare_type"],
+            "compare_window": payload["compare_window"],
+            "row_count": len(rows),
+            "note": "已算出当前值/对比值/差值/增长率，写在响应的 compare 字段",
         }
 
     def get_data_dictionary(a: dict, u, ctx: dict) -> dict:

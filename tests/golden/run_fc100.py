@@ -1,7 +1,8 @@
 """FC 黄金集完整运行器 · 按 golden 设计意图全量判定，不做任何缺陷规避。
 
-判定覆盖 verdict 全部 8 个字段 + expected_tools 的 args_contract/order/depends_on：
-  结果层(读 resp): answer_type / sql_must / sql_must_not / rows_exact / row_count / forbidden_text
+判定覆盖 verdict 全部字段 + expected_tools 的 args_contract/order/depends_on：
+  结果层(读 resp): answer_type / sql_must / sql_must_not / rows_exact / row_count /
+                   forbidden_text / compare_exact(同比环比四值)
   工具层(读 trace): tools_must(软) / tools_must_not / no_tool_status / expected_tools 参数与顺序
 
 设计立场：按 golden 声明的期望跑，agent 缺能力(如 clarify 分支)导致失败 = 真实缺陷，如实报告。
@@ -164,6 +165,20 @@ def resp_digest(resp: dict) -> dict:
         "rows_head": (resp.get("rows") or [])[:20],
         "suggestions": resp.get("suggestions") or [],
         "confidence": resp.get("confidence"),
+        "compare": _compare_digest(resp.get("compare")),
+    }
+
+
+def _compare_digest(cp) -> dict | None:
+    """compare 摘要：锁定对比类型/窗口/四值，rows 保留全部（最多 4 维，不会过大）。"""
+    if not cp:
+        return None
+    return {
+        "compare_type": cp.get("compare_type"),
+        "compare_window": cp.get("compare_window"),
+        "dimensions": cp.get("dimensions"),
+        "rows": cp.get("rows") or [],
+        "sql": cp.get("sql") or "",
     }
 
 
@@ -234,6 +249,56 @@ def _dims_equal(want, got) -> bool:
     return want == got
 
 
+def _num_equal(a, b, tol: float = 0.02) -> bool:
+    """数值比较：期望 None 时实得必须也是 None（不编造对比值）；数值用容差。"""
+    if b is None:
+        return a is None
+    if isinstance(b, (int, float)):
+        return isinstance(a, (int, float)) and math.isclose(a, b, rel_tol=1e-6, abs_tol=tol)
+    return a == b
+
+
+def _compare_fails(got, expected) -> list[str]:
+    """compare_exact 断言：对比类型/窗口 + 各维度当前值/对比值/差值/增长率四值。
+
+    expected=None（用例不涉及对比）直接跳过；有期望但响应缺 compare 则报错。
+    yoy 无历史数据时 previous/diff/rate 期望为 None，实得必须同样是 None——
+    这是"不编造"的硬约束，不能因为数值缺失就放宽。
+    """
+    if not expected:
+        return []
+    if not got:
+        return ["compare_exact: 响应缺 compare 字段"]
+    out = []
+    if got.get("compare_type") != expected.get("compare_type"):
+        out.append(f"compare.compare_type: 期望 {expected.get('compare_type')}，实得 {got.get('compare_type')}")
+    gw = got.get("compare_window") or {}
+    ew = expected.get("compare_window") or {}
+    for k in ("start", "end"):
+        if gw.get(k) != ew.get(k):
+            out.append(f"compare.compare_window.{k}: 期望 {ew.get(k)}，实得 {gw.get(k)}")
+    # 维度 key → 首个指标四值（现有对比用例均为单指标）
+    gmap = {}
+    for r in (got.get("rows") or []):
+        dim = r.get("dim") or []
+        key = " | ".join(str(x) for x in dim)
+        metrics = r.get("metrics") or []
+        if metrics:
+            gmap[key] = metrics[0]
+    for key, want in (expected.get("values") or {}).items():
+        m = gmap.get(key)
+        if not m:
+            out.append(f"compare 缺维度 {key}")
+            continue
+        for fld in ("current", "previous", "diff", "rate"):
+            if fld not in want:
+                continue
+            tol = 0.001 if fld == "rate" else 0.02
+            if not _num_equal(m.get(fld), want[fld], tol):
+                out.append(f"compare.{key}.{fld}: 期望 {want[fld]}，实得 {m.get(fld)}")
+    return out
+
+
 def _decision_names(tr):
     return {n for r in tr if r.get("kind") == "decision" for n in (r.get("selected") or [])}
 
@@ -261,6 +326,7 @@ def check_hard(resp: dict, tr: list, case: dict) -> list[str]:
     for frag in v.get("forbidden_text") or []:
         if frag in txt:
             fails.append(f"forbidden_text 泄露: {frag}")
+    fails.extend(_compare_fails(resp.get("compare"), v.get("compare_exact")))
 
     # ===== 工具层 =====
     calls = [r for r in tr if r.get("kind") == "tool_call"]

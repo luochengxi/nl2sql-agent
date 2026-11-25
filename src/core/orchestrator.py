@@ -322,6 +322,8 @@ def chat_fc(req: ChatRequest) -> ChatResponse:
     "问物流时效查 logistics，问绩效查 performance，其余查 retail。"
     "用户说导出/下载就调 export_result，说看明细/展开就调 drilldown_detail，"
     "说查历史就调 query_history。导出和下钻必须先调 query_metrics 拿到结果。"
+    "用户说环比/同比/和上月比/对比，先调 query_metrics 拿本期，再调 compare_period，"
+    "它会给出当前值/对比值/差值/增长率；不要为对比自己另查一次 query_metrics。"
     "不要编造指标 id。"
     )
 
@@ -364,12 +366,31 @@ def chat_fc(req: ChatRequest) -> ChatResponse:
     ctx = dispatcher.get_ctx(turn_id)
     full = ctx.get("last_result")
     plan = ctx.get("last_plan")
+    compare = ctx.get("compare_result")
     if full is None or plan is None:
         return ChatResponse(session_id="", answer_type="fallback",
                             text="取数完成但上下文已丢失，请重试。", trace_id=turn_id)
 
+    # 有对比时，用 compare 快照里的本期值重建结果表：
+    # compare_period 是在 query_metrics 之后立刻算的，锁住了正确本期；
+    # 若模型多轮里又查了对比期 query_metrics，last_result 会漂移，这里以快照为准。
+    result_rows, result_columns = full.rows, full.columns
+    if compare and compare.get("rows"):
+        rebuilt = []
+        for cr in compare["rows"]:
+            row = list(cr["dim"])
+            for m in cr["metrics"]:
+                row.append(m["current"])
+            rebuilt.append(row)
+        if rebuilt:
+            result_rows = rebuilt
+            result_columns = compare["columns"]
+
+    from types import SimpleNamespace
+    view = SimpleNamespace(rows=result_rows, columns=result_columns)
+
     export_token = create_export_token(
-        user.user_id, full.columns, full.rows, last_result["sql"], plan.caliber_refs
+        user.user_id, result_columns, result_rows, last_result["sql"], plan.caliber_refs
     )
     drilldown_token = create_drilldown_token(plan, user)
     dim_columns = []
@@ -379,10 +400,11 @@ def chat_fc(req: ChatRequest) -> ChatResponse:
 
     return ChatResponse(
         session_id="", answer_type="result",
-        text=_summarize(plan, full, [], user),
-        sql=last_result["sql"], columns=full.columns,
-        rows=full.rows, row_count=len(full.rows),
-        chart=_chart_spec(plan, full),
+        text=_summarize(plan, view, [], user),
+        sql=last_result["sql"], columns=result_columns,
+        rows=result_rows, row_count=len(result_rows),
+        chart=_chart_spec(plan, view),
+        compare=compare,
         confidence=plan.confidence,
         plan=plan.model_dump(),
         caliber_refs=plan.caliber_refs,

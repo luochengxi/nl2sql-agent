@@ -26,6 +26,30 @@ def _minus_year(d: date) -> date:
         return d.replace(year=d.year - 1, day=28)
 
 
+def compare_window(start: str, end: str, compare_type: str) -> tuple[str, str] | None:
+    """按对比类型把本期窗口平移成对比期窗口（纯函数，不依赖 LLM）。
+
+    mom/pop 环比：等长窗口紧邻本期之前（与 _attach_compare 口径一致）；
+    dod 日环比：整体前移 1 天（自昨日窗口得前一日）；
+    yoy 同比：自然年对齐，处理闰年。
+    非法类型返回 None，调用方据此判无效调用。
+    """
+    try:
+        s, e = date.fromisoformat(start), date.fromisoformat(end)
+    except (ValueError, TypeError):
+        return None
+    if compare_type in ("mom", "pop"):
+        length = (e - s).days + 1
+        cs, ce = s - timedelta(days=length), s - timedelta(days=1)
+    elif compare_type == "dod":
+        cs, ce = s - timedelta(days=1), e - timedelta(days=1)
+    elif compare_type == "yoy":
+        cs, ce = _minus_year(s), _minus_year(e)
+    else:
+        return None
+    return cs.isoformat(), ce.isoformat()
+
+
 def default_time_range(base: date | None = None) -> "TimeRange":
     from .models import TimeRange
 

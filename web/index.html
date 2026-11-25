@@ -207,6 +207,7 @@ function renderResult(r){
   const refs = (r.caliber_refs||[]).map(x=>`<li>${esc(x)}</li>`).join('') || '<li>本次未引用口径文档</li>';
   $('resultBody').innerHTML = `
     <div class="card"><div class="card-h">摘要</div><div class="card-b summary">${esc(r.text)}</div></div>
+    ${r.compare ? `<div class="card"><div class="card-h">同比 / 环比对比 <small style="color:var(--muted);font-weight:400">${esc(compareLabel(r.compare))}</small></div><div class="card-b" style="padding:0;max-height:300px;overflow:auto" id="compareBox"></div></div>` : ''}
     <div class="card">
       <div class="card-h"><span>图表（基础）</span>
         <div class="chart-types" id="chartTypes">
@@ -235,6 +236,7 @@ function renderResult(r){
     </div></div>
     <div class="card"><div class="card-h">引用口径</div><div class="card-b refs"><ul style="margin:0;padding-left:18px">${refs}</ul></div></div>
   `;
+  if(r.compare) renderCompare(r.compare);
   drawChart(r.chart, 'line');
   $('chartTypes').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     $('chartTypes').querySelectorAll('button').forEach(x=>x.classList.remove('active'));
@@ -246,6 +248,30 @@ function renderResult(r){
   $('traceBtn').onclick=()=>showTrace(r.trace_id);
   $('fbUp').onclick=()=>doFeedback('up');
   $('fbDown').onclick=()=>doFeedback('down');
+}
+
+function compareLabel(c){
+  const names={mom:'环比',pop:'环比',yoy:'同比',dod:'日环比'};
+  return `${names[c.compare_type]||c.compare_type} · 对比期 ${c.compare_window?.start||''} ~ ${c.compare_window?.end||''}`;
+}
+function renderCompare(c){
+  const dims=c.dimensions||[];
+  const first=(c.rows||[])[0]||{metrics:[]};
+  const name=id=>({valid_order_cnt:'有效订单量',pay_amount:'成交额',aov:'客单价'}[id]||id);
+  const head='<tr>'+dims.map(d=>`<th>${esc(d)}</th>`).join('')+
+    first.metrics.map(m=>['当前值','对比值','差值','增长率']
+      .map(h=>`<th>${esc(name(m.metric))}·${h}</th>`).join('')).join('')+'</tr>';
+  const body=(c.rows||[]).map(row=>{
+    const dimsTd=row.dim.map(v=>`<td>${esc(v)}</td>`).join('');
+    const groups=row.metrics.map(m=>{
+      const rate=m.rate==null?'—':(m.rate*100).toFixed(2)+'%';
+      const cls=m.rate==null?'':(m.rate>=0?'color:#dc2626':'color:#16a34a');
+      return `<td class="num">${fmt(m.current)}</td><td class="num">${fmt(m.previous)}</td>`+
+        `<td class="num">${fmt(m.diff)}</td><td class="num" style="${cls}">${rate}</td>`;
+    }).join('');
+    return '<tr>'+dimsTd+groups+'</tr>';
+  }).join('');
+  $('compareBox').innerHTML=`<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }
 
 function renderTable(r){

@@ -69,6 +69,7 @@ class ChatResponse(BaseModel):
     rows: list[list[Any]] = Field(default_factory=list)
     row_count: int = 0
     chart: dict[str, Any] | None = None
+    compare: dict[str, Any] | None = None  # 同比/环比：当前值/对比值/差值/增长率
     confidence: float = 0.0
     plan: dict[str, Any] | None = None
     caliber_refs: list[str] = Field(default_factory=list)
