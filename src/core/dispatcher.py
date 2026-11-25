@@ -13,6 +13,7 @@ from .nl2sql import compile
 from .rag import get_index
 from .time_parser import compare_window
 from ..observability import trace
+from .models import QueryPlan, TimeRange, Filter
 
 MAX_ROUNDS = 3          # 模型最多决策轮数，超过判超限
 
@@ -45,11 +46,24 @@ def _handlers() -> dict:
     from .models import QueryPlan, TimeRange
 
     def query_metrics(a: dict, u, ctx: dict) -> dict:
+        allowed_cols = {
+            str(d["column"]) for d in semantic()["dimensions"].values() if d.get("column")
+        }
+        filters = []
+        for f in (a.get("filters") or []):
+            col, val = f.get("column"), f.get("value")
+            if col not in allowed_cols:
+                raise ValueError(f"不支持的过滤列: {col}")
+            if val in (None, ""):
+                continue
+            filters.append(Filter(column=col, op="=", value=str(val)))
+
         plan = QueryPlan(
             business_line=a["business_line"],
             metrics=a["metrics"],
             dimensions=a.get("dimensions", []),
             time_range=TimeRange(start=a["date_start"], end=a["date_end"]),
+            filters=filters,
         )
         compiled = compile(plan, u)
         result = run(compiled)

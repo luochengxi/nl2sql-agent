@@ -11,6 +11,8 @@ def tools_schema() -> list[dict]:
         bl = list(business_lines()["business_lines"])
         mt = list(semantic()["metrics"])
         dim = list(semantic()["dimensions"])
+        filter_cols = [str(d["column"]) for d in semantic()["dimensions"].values() if d.get("column")]
+
         _CACHE = [
             {"type": "function", "function": {
                 "name": "query_metrics",
@@ -21,6 +23,18 @@ def tools_schema() -> list[dict]:
                     "dimensions": {"type": "array", "items": {"type": "string", "enum": dim}},
                     "date_start": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
                     "date_end": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+                    "filters": {
+                        "type": "array",
+                        "description": "范围收窄条件。用户说华东/上海等限定某区域或城市时填这里，不要塞进 dimensions。",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "column": {"type": "string", "enum": filter_cols},
+                                "value": {"type": "string"}
+                            },
+                            "required": ["column", "value"]
+                        }
+                    },
                 }, "required": ["business_line", "metrics", "date_start", "date_end"]},
             }},
             {"type": "function", "function": {
