@@ -14,7 +14,7 @@ def tools_schema() -> list[dict]:
         _CACHE = [
             {"type": "function", "function": {
                 "name": "query_metrics",
-                "description": "按业务线和指标取聚合数据，是所有取数请求的主入口。业务线路由：零售销售用 retail，物流时效用 logistics，绩效用 performance，查错业务线会取到错误的表。日期换算：用户说'近N日'指含昨日在内最近N天，以系统提示给出的今天为 T，date_start=T-N、date_end=T-1，必须换算成 YYYY-MM-DD 再调用。指标 id 只能用 parameters 里枚举的值，不要编造。",
+                 "description": "按业务线和指标取聚合数据，是所有取数请求的主入口。业务线路由：零售销售用 retail，物流时效用 logistics，绩效用 performance，查错业务线会取到错误的表。日期换算：用户说'近N日'指含昨日在内最近N天，以系统提示给出的今天为 T，date_start=T-N、date_end=T-1，必须换算成 YYYY-MM-DD 再调用。指标 id 只能用 parameters 里枚举的值，不要编造。dimensions 默认留空取累计；仅当用户明确说按天/每日/各天时填 ['date']，地域/门店/品类/产品/卖家维度按用户原话填对应值，不要默认加 date。",
                 "parameters": {"type": "object", "properties": {
                     "business_line": {"type": "string", "enum": bl},
                     "metrics": {"type": "array", "items": {"type": "string", "enum": mt}},

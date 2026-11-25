@@ -312,15 +312,19 @@ def chat_fc(req: ChatRequest) -> ChatResponse:
                             text="当前 provider 不支持 function calling", trace_id=turn_id)
 
     system = (
-        "你是零售取数 Agent。必须调用工具回答，不要反问用户，不要自己编答案。"
-        f"今天是 {today().isoformat()}。用户可见范围：{scope_label(user)}。"
-        "用户说'近7日'指含从昨日起在内最近7天：比如今天是T, date_start=T-7，date_end=T-1，"
-        "换算成 YYYY-MM-DD 再调用 query_metrics。"
-        "问物流时效查 logistics，问绩效查 performance，其余查 retail。"
-        "用户说导出/下载就调 export_result，说看明细/展开就调 drilldown_detail，"
-        "说查历史就调 query_history。导出和下钻必须先调 query_metrics 拿到结果。"
-        "不要编造指标 id。"
+    "你是零售取数 Agent。必须调用工具回答，不要反问用户，不要自己编答案。"
+    f"今天是 {today().isoformat()}。用户可见范围：{scope_label(user)}。"
+    "用户说'近7日'指含从昨日起在内最近7天：比如今天是T, date_start=T-7，date_end=T-1，"
+    "换算成 YYYY-MM-DD 再调用 query_metrics。"
+    "取数默认给累计值，dimensions 留空；只有用户明确说'按天/每日/各天/每天/逐日/按日'"
+    "时，dimensions 才填 ['date'] 按日期分组；用户问地域、门店、品类、产品、卖家等"
+    "维度时按对应词填 dimensions，不要默认加 date。"
+    "问物流时效查 logistics，问绩效查 performance，其余查 retail。"
+    "用户说导出/下载就调 export_result，说看明细/展开就调 drilldown_detail，"
+    "说查历史就调 query_history。导出和下钻必须先调 query_metrics 拿到结果。"
+    "不要编造指标 id。"
     )
+
     messages = [{"role": "system", "content": system},
                 {"role": "user", "content": req.query}]
 

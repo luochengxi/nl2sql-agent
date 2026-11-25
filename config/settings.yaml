@@ -12,8 +12,12 @@ warehouse:
 llm:
   # mock | openai_like
   provider: openai_like
+#  openai_base_url: https://ws-8hbix6p5babbj3uf.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+#  openai_model: qwen3.7-plus
+#  openai_api_key_env: OPENAI_API_KEY
+
   openai_base_url: https://ws-8hbix6p5babbj3uf.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
-  openai_model: qwen3.7-plus
+  openai_model: qwen4-max
   openai_api_key_env: OPENAI_API_KEY
   temperature: 0
      #  openai_base_url: https://api.openai.com/v1

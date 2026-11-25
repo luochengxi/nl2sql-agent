@@ -3,21 +3,406 @@
     "runner": "run_fc100.py",
     "golden": "tests/golden/golden_cases_fc100.jsonl",
     "golden_name": "golden_cases_fc100.jsonl",
-    "run_at": "2026-11-20T15:40:34",
+    "run_at": "2026-11-20T19:12:11",
     "anchor_t": "2026-11-03",
     "provider": "openai_like",
     "endpoint": "POST /api/chat-fc",
     "trace_endpoint": "GET /api/trace/{trace_id}",
-    "soft_samples": 5
+    "soft_samples": 0
   },
   "summary": {
-    "total": 1,
-    "pass": 1,
+    "total": 10,
+    "pass": 10,
     "fail": 0,
     "pass_rate": 100.0,
-    "elapsed_s": 13.4
+    "elapsed_s": 107.9
   },
   "cases": [
+    {
+      "id": "HP-001",
+      "category": "happy_path",
+      "expected_action": "result",
+      "query": "近7日 按区域 有效订单量",
+      "focus": [
+        "focus-3"
+      ],
+      "business_line": "retail",
+      "user_id": "U001",
+      "note": "六维覆盖: 指标valid_order_cnt/维度region/窗口r7；rows_exact 生成时冻结",
+      "verdict": "PASS",
+      "fail_reasons": [],
+      "trace_id": "7b4b1266685c",
+      "trace_url": "GET /api/trace/7b4b1266685c",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/7b4b1266685c | python -m json.tool",
+      "soft": null,
+      "resp": {
+        "answer_type": "result",
+        "text": "查到 4 行，指标：有效订单量。\n· 华东：有效订单量=249\n· 华北：有效订单量=163\n· 华南：有效订单量=168\n…… 其余 1 行见下方表格。\n时间口径：2026-10-27 ~ 2026-11-02（自定义）\n可见范围：全部数据",
+        "sql": "SELECT region_name AS \"区域\", SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) AS \"有效订单量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY region_name\nORDER BY 1",
+        "row_count": 4,
+        "rows_head": [
+          [
+            "华东",
+            249
+          ],
+          [
+            "华北",
+            163
+          ],
+          [
+            "华南",
+            168
+          ],
+          [
+            "华西",
+            151
+          ]
+        ],
+        "suggestions": [
+          "按天看趋势",
+          "换成销售额 / 客单价对比",
+          "查看零售线明细",
+          "导出 CSV / Excel"
+        ],
+        "confidence": 0.9
+      },
+      "trace": {
+        "decisions": [
+          {
+            "round": 1,
+            "selected": [
+              "query_metrics"
+            ],
+            "finish_reason": "tool_calls",
+            "raw": [
+              {
+                "id": "call_b11f417b96fc4681ab4fcd7c",
+                "name": "query_metrics",
+                "arguments": {
+                  "business_line": "retail",
+                  "metrics": [
+                    "valid_order_cnt"
+                  ],
+                  "dimensions": [
+                    "region"
+                  ],
+                  "date_start": "2026-10-27",
+                  "date_end": "2026-11-02"
+                }
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "selected": [],
+            "finish_reason": "stop",
+            "raw": []
+          }
+        ],
+        "tool_calls": [
+          {
+            "round": 1,
+            "tool_name": "query_metrics",
+            "tool_args": {
+              "business_line": "retail",
+              "metrics": [
+                "valid_order_cnt"
+              ],
+              "dimensions": [
+                "region"
+              ],
+              "date_start": "2026-10-27",
+              "date_end": "2026-11-02"
+            },
+            "status": "ok",
+            "tool_return": {
+              "row_count": 4,
+              "columns": [
+                "区域",
+                "有效订单量"
+              ],
+              "rows": [
+                [
+                  "华东",
+                  249
+                ],
+                [
+                  "华北",
+                  163
+                ],
+                [
+                  "华南",
+                  168
+                ],
+                [
+                  "华西",
+                  151
+                ]
+              ],
+              "sql": "SELECT region_name AS \"区域\", SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) AS \"有效订单量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY region_name\nORDER BY 1",
+              "view": "v_retail_order"
+            },
+            "error": null,
+            "latency_ms": 8.47
+          }
+        ],
+        "n_decisions": 2,
+        "n_tool_calls": 1
+      },
+      "expected": {
+        "verdict": {
+          "answer_type": "result",
+          "sql_must": [
+            "\"区域\"",
+            "\"有效订单量\"",
+            "BETWEEN",
+            "SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END)",
+            "is_valid = 1",
+            "order_date",
+            "region_name",
+            "v_retail_order"
+          ],
+          "rows_exact": {
+            "华东": 249,
+            "华北": 163,
+            "华南": 168,
+            "华西": 151
+          },
+          "row_count": 4,
+          "no_tool_status": [
+            "error"
+          ],
+          "note": "六维覆盖: 指标valid_order_cnt/维度region/窗口r7；rows_exact 生成时冻结"
+        },
+        "expected_tools": [
+          {
+            "name": "query_metrics",
+            "args_contract": {
+              "business_line": "retail",
+              "metrics": [
+                "valid_order_cnt"
+              ],
+              "dimensions": [
+                "region"
+              ],
+              "date_start": "2026-10-27",
+              "date_end": "2026-11-02"
+            },
+            "required": true,
+            "order": 1
+          }
+        ]
+      },
+      "runner_error": null,
+      "elapsed_ms": 11154.6
+    },
+    {
+      "id": "HP-002",
+      "category": "happy_path",
+      "expected_action": "result",
+      "query": "近2日 按城市 有效订单量",
+      "focus": [
+        "focus-3"
+      ],
+      "business_line": "retail",
+      "user_id": "U001",
+      "note": "六维覆盖: 指标valid_order_cnt/维度city/窗口r2；rows_exact 生成时冻结",
+      "verdict": "PASS",
+      "fail_reasons": [],
+      "trace_id": "15f7307f4774",
+      "trace_url": "GET /api/trace/15f7307f4774",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/15f7307f4774 | python -m json.tool",
+      "soft": null,
+      "resp": {
+        "answer_type": "result",
+        "text": "查到 9 行，指标：有效订单量。\n· 上海：有效订单量=25\n· 北京：有效订单量=24\n· 南京：有效订单量=21\n…… 其余 6 行见下方表格。\n时间口径：2026-11-01 ~ 2026-11-02（自定义）\n可见范围：全部数据",
+        "sql": "SELECT city_name AS \"城市\", SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) AS \"有效订单量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY city_name\nORDER BY 1",
+        "row_count": 9,
+        "rows_head": [
+          [
+            "上海",
+            25
+          ],
+          [
+            "北京",
+            24
+          ],
+          [
+            "南京",
+            21
+          ],
+          [
+            "天津",
+            23
+          ],
+          [
+            "广州",
+            29
+          ],
+          [
+            "成都",
+            23
+          ],
+          [
+            "杭州",
+            27
+          ],
+          [
+            "深圳",
+            23
+          ],
+          [
+            "重庆",
+            20
+          ]
+        ],
+        "suggestions": [
+          "按天看趋势",
+          "换成销售额 / 客单价对比",
+          "查看零售线明细",
+          "导出 CSV / Excel"
+        ],
+        "confidence": 0.9
+      },
+      "trace": {
+        "decisions": [
+          {
+            "round": 1,
+            "selected": [
+              "query_metrics"
+            ],
+            "finish_reason": "tool_calls",
+            "raw": [
+              {
+                "id": "call_6627ae1c5cc34253a6a7b222",
+                "name": "query_metrics",
+                "arguments": {
+                  "business_line": "retail",
+                  "metrics": [
+                    "valid_order_cnt"
+                  ],
+                  "dimensions": [
+                    "city"
+                  ],
+                  "date_start": "2026-11-01",
+                  "date_end": "2026-11-02"
+                }
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "selected": [],
+            "finish_reason": "stop",
+            "raw": []
+          }
+        ],
+        "tool_calls": [
+          {
+            "round": 1,
+            "tool_name": "query_metrics",
+            "tool_args": {
+              "business_line": "retail",
+              "metrics": [
+                "valid_order_cnt"
+              ],
+              "dimensions": [
+                "city"
+              ],
+              "date_start": "2026-11-01",
+              "date_end": "2026-11-02"
+            },
+            "status": "ok",
+            "tool_return": {
+              "row_count": 9,
+              "columns": [
+                "城市",
+                "有效订单量"
+              ],
+              "rows": [
+                [
+                  "上海",
+                  25
+                ],
+                [
+                  "北京",
+                  24
+                ],
+                [
+                  "南京",
+                  21
+                ],
+                [
+                  "天津",
+                  23
+                ],
+                [
+                  "广州",
+                  29
+                ]
+              ],
+              "sql": "SELECT city_name AS \"城市\", SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) AS \"有效订单量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY city_name\nORDER BY 1",
+              "view": "v_retail_order"
+            },
+            "error": null,
+            "latency_ms": 3.92
+          }
+        ],
+        "n_decisions": 2,
+        "n_tool_calls": 1
+      },
+      "expected": {
+        "verdict": {
+          "answer_type": "result",
+          "sql_must": [
+            "\"城市\"",
+            "\"有效订单量\"",
+            "BETWEEN",
+            "SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END)",
+            "city_name",
+            "is_valid = 1",
+            "order_date",
+            "v_retail_order"
+          ],
+          "rows_exact": {
+            "上海": 25,
+            "北京": 24,
+            "南京": 21,
+            "天津": 23,
+            "广州": 29,
+            "成都": 23,
+            "杭州": 27,
+            "深圳": 23,
+            "重庆": 20
+          },
+          "row_count": 9,
+          "no_tool_status": [
+            "error"
+          ],
+          "note": "六维覆盖: 指标valid_order_cnt/维度city/窗口r2；rows_exact 生成时冻结"
+        },
+        "expected_tools": [
+          {
+            "name": "query_metrics",
+            "args_contract": {
+              "business_line": "retail",
+              "metrics": [
+                "valid_order_cnt"
+              ],
+              "dimensions": [
+                "city"
+              ],
+              "date_start": "2026-11-01",
+              "date_end": "2026-11-02"
+            },
+            "required": true,
+            "order": 1
+          }
+        ]
+      },
+      "runner_error": null,
+      "elapsed_ms": 10243.9
+    },
     {
       "id": "HP-003",
       "category": "happy_path",
@@ -31,9 +416,9 @@
       "note": "六维覆盖: 指标order_cnt/维度region/窗口r30；rows_exact 生成时冻结",
       "verdict": "PASS",
       "fail_reasons": [],
-      "trace_id": "8592f72a43cb",
-      "trace_url": "GET /api/trace/8592f72a43cb",
-      "curl": "curl -s http://127.0.0.1:8000/api/trace/8592f72a43cb | python -m json.tool",
+      "trace_id": "af50b34b139c",
+      "trace_url": "GET /api/trace/af50b34b139c",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/af50b34b139c | python -m json.tool",
       "soft": null,
       "resp": {
         "answer_type": "result",
@@ -76,7 +461,7 @@
             "finish_reason": "tool_calls",
             "raw": [
               {
-                "id": "call_ff89555dbe064eae9ff8a07f",
+                "id": "call_7282e628aa8b4cb086eb6b62",
                 "name": "query_metrics",
                 "arguments": {
                   "business_line": "retail",
@@ -143,7 +528,7 @@
               "view": "v_retail_order"
             },
             "error": null,
-            "latency_ms": 10.36
+            "latency_ms": 9.62
           }
         ],
         "n_decisions": 2,
@@ -193,7 +578,1487 @@
         ]
       },
       "runner_error": null,
-      "elapsed_ms": 13424.4
+      "elapsed_ms": 8859.4
+    },
+    {
+      "id": "HP-004",
+      "category": "happy_path",
+      "expected_action": "result",
+      "query": "近7日 按天 成交额",
+      "focus": [
+        "focus-3"
+      ],
+      "business_line": "retail",
+      "user_id": "U001",
+      "note": "六维覆盖: 指标pay_amount/维度date/窗口r7；rows_exact 生成时冻结",
+      "verdict": "PASS",
+      "fail_reasons": [],
+      "trace_id": "fce37fb1c5ef",
+      "trace_url": "GET /api/trace/fce37fb1c5ef",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/fce37fb1c5ef | python -m json.tool",
+      "soft": null,
+      "resp": {
+        "answer_type": "result",
+        "text": "查到 7 行，指标：销售额。\n· 2026-10-27：销售额=54153.08\n· 2026-10-28：销售额=48423.84\n· 2026-10-29：销售额=64924.9\n…… 其余 4 行见下方表格。\n时间口径：2026-10-27 ~ 2026-11-02（自定义）\n可见范围：全部数据",
+        "sql": "SELECT order_date AS \"日期\", ROUND(SUM(pay_amount), 2) AS \"销售额\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY order_date\nORDER BY 1",
+        "row_count": 7,
+        "rows_head": [
+          [
+            "2026-10-27",
+            54153.08
+          ],
+          [
+            "2026-10-28",
+            48423.84
+          ],
+          [
+            "2026-10-29",
+            64924.9
+          ],
+          [
+            "2026-10-30",
+            61054.92
+          ],
+          [
+            "2026-10-31",
+            81146.48
+          ],
+          [
+            "2026-11-01",
+            79649.63
+          ],
+          [
+            "2026-11-02",
+            64563.5
+          ]
+        ],
+        "suggestions": [
+          "按天看趋势",
+          "换成销售额 / 客单价对比",
+          "查看零售线明细",
+          "导出 CSV / Excel"
+        ],
+        "confidence": 0.9
+      },
+      "trace": {
+        "decisions": [
+          {
+            "round": 1,
+            "selected": [
+              "query_metrics"
+            ],
+            "finish_reason": "tool_calls",
+            "raw": [
+              {
+                "id": "call_19086836d68348cbaddded7f",
+                "name": "query_metrics",
+                "arguments": {
+                  "business_line": "retail",
+                  "metrics": [
+                    "pay_amount"
+                  ],
+                  "dimensions": [
+                    "date"
+                  ],
+                  "date_start": "2026-10-27",
+                  "date_end": "2026-11-02"
+                }
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "selected": [],
+            "finish_reason": "stop",
+            "raw": []
+          }
+        ],
+        "tool_calls": [
+          {
+            "round": 1,
+            "tool_name": "query_metrics",
+            "tool_args": {
+              "business_line": "retail",
+              "metrics": [
+                "pay_amount"
+              ],
+              "dimensions": [
+                "date"
+              ],
+              "date_start": "2026-10-27",
+              "date_end": "2026-11-02"
+            },
+            "status": "ok",
+            "tool_return": {
+              "row_count": 7,
+              "columns": [
+                "日期",
+                "销售额"
+              ],
+              "rows": [
+                [
+                  "2026-10-27",
+                  54153.08
+                ],
+                [
+                  "2026-10-28",
+                  48423.84
+                ],
+                [
+                  "2026-10-29",
+                  64924.9
+                ],
+                [
+                  "2026-10-30",
+                  61054.92
+                ],
+                [
+                  "2026-10-31",
+                  81146.48
+                ]
+              ],
+              "sql": "SELECT order_date AS \"日期\", ROUND(SUM(pay_amount), 2) AS \"销售额\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY order_date\nORDER BY 1",
+              "view": "v_retail_order"
+            },
+            "error": null,
+            "latency_ms": 3.62
+          }
+        ],
+        "n_decisions": 2,
+        "n_tool_calls": 1
+      },
+      "expected": {
+        "verdict": {
+          "answer_type": "result",
+          "sql_must": [
+            "\"销售额\"",
+            "BETWEEN",
+            "ROUND(SUM(pay_amount), 2)",
+            "order_date",
+            "v_retail_order"
+          ],
+          "rows_exact": {
+            "2026-10-27": 54153.08,
+            "2026-10-28": 48423.84,
+            "2026-10-29": 64924.9,
+            "2026-10-30": 61054.92,
+            "2026-10-31": 81146.48,
+            "2026-11-01": 79649.63,
+            "2026-11-02": 64563.5
+          },
+          "row_count": 7,
+          "no_tool_status": [
+            "error"
+          ],
+          "note": "六维覆盖: 指标pay_amount/维度date/窗口r7；rows_exact 生成时冻结"
+        },
+        "expected_tools": [
+          {
+            "name": "query_metrics",
+            "args_contract": {
+              "business_line": "retail",
+              "metrics": [
+                "pay_amount"
+              ],
+              "dimensions": [
+                "date"
+              ],
+              "date_start": "2026-10-27",
+              "date_end": "2026-11-02"
+            },
+            "required": true,
+            "order": 1
+          }
+        ]
+      },
+      "runner_error": null,
+      "elapsed_ms": 12299.0
+    },
+    {
+      "id": "HP-005",
+      "category": "happy_path",
+      "expected_action": "result",
+      "query": "近30日 按城市 客单价",
+      "focus": [
+        "focus-3"
+      ],
+      "business_line": "retail",
+      "user_id": "U001",
+      "note": "六维覆盖: 指标aov/维度city/窗口r30；rows_exact 生成时冻结",
+      "verdict": "PASS",
+      "fail_reasons": [],
+      "trace_id": "ed10776bb60b",
+      "trace_url": "GET /api/trace/ed10776bb60b",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/ed10776bb60b | python -m json.tool",
+      "soft": null,
+      "resp": {
+        "answer_type": "result",
+        "text": "查到 9 行，指标：客单价。\n· 上海：客单价=612.96\n· 北京：客单价=659.83\n· 南京：客单价=647.33\n…… 其余 6 行见下方表格。\n时间口径：2026-10-04 ~ 2026-11-02（自定义）\n可见范围：全部数据",
+        "sql": "SELECT city_name AS \"城市\", ROUND(SUM(pay_amount) / NULLIF(SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END), 0), 2) AS \"客单价\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY city_name\nORDER BY 1",
+        "row_count": 9,
+        "rows_head": [
+          [
+            "上海",
+            612.96
+          ],
+          [
+            "北京",
+            659.83
+          ],
+          [
+            "南京",
+            647.33
+          ],
+          [
+            "天津",
+            627.16
+          ],
+          [
+            "广州",
+            627.59
+          ],
+          [
+            "成都",
+            620.25
+          ],
+          [
+            "杭州",
+            636.55
+          ],
+          [
+            "深圳",
+            639.23
+          ],
+          [
+            "重庆",
+            656.35
+          ]
+        ],
+        "suggestions": [
+          "按天看趋势",
+          "换成销售额 / 客单价对比",
+          "查看零售线明细",
+          "导出 CSV / Excel"
+        ],
+        "confidence": 0.9
+      },
+      "trace": {
+        "decisions": [
+          {
+            "round": 1,
+            "selected": [
+              "query_metrics"
+            ],
+            "finish_reason": "tool_calls",
+            "raw": [
+              {
+                "id": "call_860a6d8257904ed9a6e937ae",
+                "name": "query_metrics",
+                "arguments": {
+                  "business_line": "retail",
+                  "metrics": [
+                    "aov"
+                  ],
+                  "dimensions": [
+                    "city"
+                  ],
+                  "date_start": "2026-10-04",
+                  "date_end": "2026-11-02"
+                }
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "selected": [],
+            "finish_reason": "stop",
+            "raw": []
+          }
+        ],
+        "tool_calls": [
+          {
+            "round": 1,
+            "tool_name": "query_metrics",
+            "tool_args": {
+              "business_line": "retail",
+              "metrics": [
+                "aov"
+              ],
+              "dimensions": [
+                "city"
+              ],
+              "date_start": "2026-10-04",
+              "date_end": "2026-11-02"
+            },
+            "status": "ok",
+            "tool_return": {
+              "row_count": 9,
+              "columns": [
+                "城市",
+                "客单价"
+              ],
+              "rows": [
+                [
+                  "上海",
+                  612.96
+                ],
+                [
+                  "北京",
+                  659.83
+                ],
+                [
+                  "南京",
+                  647.33
+                ],
+                [
+                  "天津",
+                  627.16
+                ],
+                [
+                  "广州",
+                  627.59
+                ]
+              ],
+              "sql": "SELECT city_name AS \"城市\", ROUND(SUM(pay_amount) / NULLIF(SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END), 0), 2) AS \"客单价\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY city_name\nORDER BY 1",
+              "view": "v_retail_order"
+            },
+            "error": null,
+            "latency_ms": 8.58
+          }
+        ],
+        "n_decisions": 2,
+        "n_tool_calls": 1
+      },
+      "expected": {
+        "verdict": {
+          "answer_type": "result",
+          "sql_must": [
+            "\"城市\"",
+            "\"客单价\"",
+            "BETWEEN",
+            "ROUND(SUM(pay_amount) / NULLIF(SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END), 0), 2)",
+            "city_name",
+            "is_valid = 1",
+            "order_date",
+            "v_retail_order"
+          ],
+          "rows_exact": {
+            "上海": 612.96,
+            "北京": 659.83,
+            "南京": 647.33,
+            "天津": 627.16,
+            "广州": 627.59,
+            "成都": 620.25,
+            "杭州": 636.55,
+            "深圳": 639.23,
+            "重庆": 656.35
+          },
+          "row_count": 9,
+          "no_tool_status": [
+            "error"
+          ],
+          "note": "六维覆盖: 指标aov/维度city/窗口r30；rows_exact 生成时冻结"
+        },
+        "expected_tools": [
+          {
+            "name": "query_metrics",
+            "args_contract": {
+              "business_line": "retail",
+              "metrics": [
+                "aov"
+              ],
+              "dimensions": [
+                "city"
+              ],
+              "date_start": "2026-10-04",
+              "date_end": "2026-11-02"
+            },
+            "required": true,
+            "order": 1
+          }
+        ]
+      },
+      "runner_error": null,
+      "elapsed_ms": 11476.0
+    },
+    {
+      "id": "HP-006",
+      "category": "happy_path",
+      "expected_action": "result",
+      "query": "近30日 按区域 退款率",
+      "focus": [
+        "focus-3"
+      ],
+      "business_line": "retail",
+      "user_id": "U001",
+      "note": "六维覆盖: 指标refund_rate/维度region/窗口r30；rows_exact 生成时冻结",
+      "verdict": "PASS",
+      "fail_reasons": [],
+      "trace_id": "ff9ad0dd3e4e",
+      "trace_url": "GET /api/trace/ff9ad0dd3e4e",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/ff9ad0dd3e4e | python -m json.tool",
+      "soft": null,
+      "resp": {
+        "answer_type": "result",
+        "text": "查到 4 行，指标：退款率。\n· 华东：退款率=0.0942\n· 华北：退款率=0.0851\n· 华南：退款率=0.0773\n…… 其余 1 行见下方表格。\n时间口径：2026-10-04 ~ 2026-11-02（自定义）\n可见范围：全部数据",
+        "sql": "SELECT region_name AS \"区域\", ROUND(SUM(CASE WHEN order_status = '已退款' THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(*), 0), 4) AS \"退款率\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY region_name\nORDER BY 1",
+        "row_count": 4,
+        "rows_head": [
+          [
+            "华东",
+            0.0942
+          ],
+          [
+            "华北",
+            0.0851
+          ],
+          [
+            "华南",
+            0.0773
+          ],
+          [
+            "华西",
+            0.0996
+          ]
+        ],
+        "suggestions": [
+          "按天看趋势",
+          "换成销售额 / 客单价对比",
+          "查看零售线明细",
+          "导出 CSV / Excel"
+        ],
+        "confidence": 0.9
+      },
+      "trace": {
+        "decisions": [
+          {
+            "round": 1,
+            "selected": [
+              "query_metrics"
+            ],
+            "finish_reason": "tool_calls",
+            "raw": [
+              {
+                "id": "call_39d48aa149a74f2bb239bcc7",
+                "name": "query_metrics",
+                "arguments": {
+                  "business_line": "retail",
+                  "metrics": [
+                    "refund_rate"
+                  ],
+                  "dimensions": [
+                    "region"
+                  ],
+                  "date_start": "2026-10-04",
+                  "date_end": "2026-11-02"
+                }
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "selected": [],
+            "finish_reason": "stop",
+            "raw": []
+          }
+        ],
+        "tool_calls": [
+          {
+            "round": 1,
+            "tool_name": "query_metrics",
+            "tool_args": {
+              "business_line": "retail",
+              "metrics": [
+                "refund_rate"
+              ],
+              "dimensions": [
+                "region"
+              ],
+              "date_start": "2026-10-04",
+              "date_end": "2026-11-02"
+            },
+            "status": "ok",
+            "tool_return": {
+              "row_count": 4,
+              "columns": [
+                "区域",
+                "退款率"
+              ],
+              "rows": [
+                [
+                  "华东",
+                  0.0942
+                ],
+                [
+                  "华北",
+                  0.0851
+                ],
+                [
+                  "华南",
+                  0.0773
+                ],
+                [
+                  "华西",
+                  0.0996
+                ]
+              ],
+              "sql": "SELECT region_name AS \"区域\", ROUND(SUM(CASE WHEN order_status = '已退款' THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(*), 0), 4) AS \"退款率\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY region_name\nORDER BY 1",
+              "view": "v_retail_order"
+            },
+            "error": null,
+            "latency_ms": 7.38
+          }
+        ],
+        "n_decisions": 2,
+        "n_tool_calls": 1
+      },
+      "expected": {
+        "verdict": {
+          "answer_type": "result",
+          "sql_must": [
+            "\"区域\"",
+            "\"退款率\"",
+            "BETWEEN",
+            "ROUND(SUM(CASE WHEN order_status = '已退款' THEN 1 ELSE 0 END) * 1.0 / NULLIF(COUNT(*), 0), 4)",
+            "order_date",
+            "region_name",
+            "v_retail_order"
+          ],
+          "rows_exact": {
+            "华东": 0.0942,
+            "华北": 0.0851,
+            "华南": 0.0773,
+            "华西": 0.0996
+          },
+          "row_count": 4,
+          "no_tool_status": [
+            "error"
+          ],
+          "note": "六维覆盖: 指标refund_rate/维度region/窗口r30；rows_exact 生成时冻结"
+        },
+        "expected_tools": [
+          {
+            "name": "query_metrics",
+            "args_contract": {
+              "business_line": "retail",
+              "metrics": [
+                "refund_rate"
+              ],
+              "dimensions": [
+                "region"
+              ],
+              "date_start": "2026-10-04",
+              "date_end": "2026-11-02"
+            },
+            "required": true,
+            "order": 1
+          }
+        ]
+      },
+      "runner_error": null,
+      "elapsed_ms": 11332.3
+    },
+    {
+      "id": "HP-007",
+      "category": "happy_path",
+      "expected_action": "result",
+      "query": "近7日 按品类 销量",
+      "focus": [
+        "focus-3"
+      ],
+      "business_line": "retail",
+      "user_id": "U001",
+      "note": "六维覆盖: 指标sales_qty/维度category/窗口r7；rows_exact 生成时冻结",
+      "verdict": "PASS",
+      "fail_reasons": [],
+      "trace_id": "885192c8bb28",
+      "trace_url": "GET /api/trace/885192c8bb28",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/885192c8bb28 | python -m json.tool",
+      "soft": null,
+      "resp": {
+        "answer_type": "result",
+        "text": "查到 4 行，指标：销量。\n· 数码：销量=565\n· 日化：销量=598\n· 服饰：销量=606\n…… 其余 1 行见下方表格。\n时间口径：2026-10-27 ~ 2026-11-02（自定义）\n可见范围：全部数据",
+        "sql": "SELECT category AS \"品类\", SUM(qty) AS \"销量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY category\nORDER BY 1",
+        "row_count": 4,
+        "rows_head": [
+          [
+            "数码",
+            565
+          ],
+          [
+            "日化",
+            598
+          ],
+          [
+            "服饰",
+            606
+          ],
+          [
+            "食品",
+            530
+          ]
+        ],
+        "suggestions": [
+          "按天看趋势",
+          "换成销售额 / 客单价对比",
+          "查看零售线明细",
+          "导出 CSV / Excel"
+        ],
+        "confidence": 0.9
+      },
+      "trace": {
+        "decisions": [
+          {
+            "round": 1,
+            "selected": [
+              "query_metrics"
+            ],
+            "finish_reason": "tool_calls",
+            "raw": [
+              {
+                "id": "call_9ffee8726db241eeaaa1927c",
+                "name": "query_metrics",
+                "arguments": {
+                  "business_line": "retail",
+                  "metrics": [
+                    "sales_qty"
+                  ],
+                  "dimensions": [
+                    "category"
+                  ],
+                  "date_start": "2026-10-27",
+                  "date_end": "2026-11-02"
+                }
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "selected": [],
+            "finish_reason": "stop",
+            "raw": []
+          }
+        ],
+        "tool_calls": [
+          {
+            "round": 1,
+            "tool_name": "query_metrics",
+            "tool_args": {
+              "business_line": "retail",
+              "metrics": [
+                "sales_qty"
+              ],
+              "dimensions": [
+                "category"
+              ],
+              "date_start": "2026-10-27",
+              "date_end": "2026-11-02"
+            },
+            "status": "ok",
+            "tool_return": {
+              "row_count": 4,
+              "columns": [
+                "品类",
+                "销量"
+              ],
+              "rows": [
+                [
+                  "数码",
+                  565
+                ],
+                [
+                  "日化",
+                  598
+                ],
+                [
+                  "服饰",
+                  606
+                ],
+                [
+                  "食品",
+                  530
+                ]
+              ],
+              "sql": "SELECT category AS \"品类\", SUM(qty) AS \"销量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY category\nORDER BY 1",
+              "view": "v_retail_order"
+            },
+            "error": null,
+            "latency_ms": 5.03
+          }
+        ],
+        "n_decisions": 2,
+        "n_tool_calls": 1
+      },
+      "expected": {
+        "verdict": {
+          "answer_type": "result",
+          "sql_must": [
+            "\"品类\"",
+            "\"销量\"",
+            "BETWEEN",
+            "SUM(qty)",
+            "category",
+            "order_date",
+            "v_retail_order"
+          ],
+          "rows_exact": {
+            "数码": 565,
+            "日化": 598,
+            "服饰": 606,
+            "食品": 530
+          },
+          "row_count": 4,
+          "no_tool_status": [
+            "error"
+          ],
+          "note": "六维覆盖: 指标sales_qty/维度category/窗口r7；rows_exact 生成时冻结"
+        },
+        "expected_tools": [
+          {
+            "name": "query_metrics",
+            "args_contract": {
+              "business_line": "retail",
+              "metrics": [
+                "sales_qty"
+              ],
+              "dimensions": [
+                "category"
+              ],
+              "date_start": "2026-10-27",
+              "date_end": "2026-11-02"
+            },
+            "required": true,
+            "order": 1
+          }
+        ]
+      },
+      "runner_error": null,
+      "elapsed_ms": 10693.1
+    },
+    {
+      "id": "HP-008",
+      "category": "happy_path",
+      "expected_action": "result",
+      "query": "近2日 按商品 销量",
+      "focus": [
+        "focus-3"
+      ],
+      "business_line": "retail",
+      "user_id": "U001",
+      "note": "六维覆盖: 指标sales_qty/维度product/窗口r2；rows_exact 生成时冻结",
+      "verdict": "PASS",
+      "fail_reasons": [],
+      "trace_id": "50d71636642f",
+      "trace_url": "GET /api/trace/50d71636642f",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/50d71636642f | python -m json.tool",
+      "soft": null,
+      "resp": {
+        "answer_type": "result",
+        "text": "查到 12 行，指标：销量。\n· 低温鲜牛奶：销量=69\n· 便携充电宝：销量=81\n· 厨房去污套装：销量=50\n…… 其余 9 行见下方表格。\n时间口径：2026-11-01 ~ 2026-11-02（自定义）\n可见范围：全部数据",
+        "sql": "SELECT product_name AS \"商品\", SUM(qty) AS \"销量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY product_name\nORDER BY 1",
+        "row_count": 12,
+        "rows_head": [
+          [
+            "低温鲜牛奶",
+            69
+          ],
+          [
+            "便携充电宝",
+            81
+          ],
+          [
+            "厨房去污套装",
+            50
+          ],
+          [
+            "坚果每日礼盒",
+            61
+          ],
+          [
+            "无线降噪耳机",
+            39
+          ],
+          [
+            "智能手环",
+            78
+          ],
+          [
+            "植萃护发素",
+            54
+          ],
+          [
+            "氨基酸洗面奶",
+            58
+          ],
+          [
+            "真皮休闲鞋",
+            67
+          ],
+          [
+            "纯棉基础T恤",
+            70
+          ],
+          [
+            "轻薄羽绒服",
+            52
+          ],
+          [
+            "鲜萃挂耳咖啡",
+            52
+          ]
+        ],
+        "suggestions": [
+          "按天看趋势",
+          "换成销售额 / 客单价对比",
+          "查看零售线明细",
+          "导出 CSV / Excel"
+        ],
+        "confidence": 0.9
+      },
+      "trace": {
+        "decisions": [
+          {
+            "round": 1,
+            "selected": [
+              "query_metrics"
+            ],
+            "finish_reason": "tool_calls",
+            "raw": [
+              {
+                "id": "call_e8f718ea75d44cf2841bf512",
+                "name": "query_metrics",
+                "arguments": {
+                  "business_line": "retail",
+                  "metrics": [
+                    "sales_qty"
+                  ],
+                  "dimensions": [
+                    "product"
+                  ],
+                  "date_start": "2026-11-01",
+                  "date_end": "2026-11-02"
+                }
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "selected": [],
+            "finish_reason": "stop",
+            "raw": []
+          }
+        ],
+        "tool_calls": [
+          {
+            "round": 1,
+            "tool_name": "query_metrics",
+            "tool_args": {
+              "business_line": "retail",
+              "metrics": [
+                "sales_qty"
+              ],
+              "dimensions": [
+                "product"
+              ],
+              "date_start": "2026-11-01",
+              "date_end": "2026-11-02"
+            },
+            "status": "ok",
+            "tool_return": {
+              "row_count": 12,
+              "columns": [
+                "商品",
+                "销量"
+              ],
+              "rows": [
+                [
+                  "低温鲜牛奶",
+                  69
+                ],
+                [
+                  "便携充电宝",
+                  81
+                ],
+                [
+                  "厨房去污套装",
+                  50
+                ],
+                [
+                  "坚果每日礼盒",
+                  61
+                ],
+                [
+                  "无线降噪耳机",
+                  39
+                ]
+              ],
+              "sql": "SELECT product_name AS \"商品\", SUM(qty) AS \"销量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY product_name\nORDER BY 1",
+              "view": "v_retail_order"
+            },
+            "error": null,
+            "latency_ms": 4.45
+          }
+        ],
+        "n_decisions": 2,
+        "n_tool_calls": 1
+      },
+      "expected": {
+        "verdict": {
+          "answer_type": "result",
+          "sql_must": [
+            "\"商品\"",
+            "\"销量\"",
+            "BETWEEN",
+            "SUM(qty)",
+            "order_date",
+            "product_name",
+            "v_retail_order"
+          ],
+          "rows_exact": {
+            "低温鲜牛奶": 69,
+            "便携充电宝": 81,
+            "厨房去污套装": 50,
+            "坚果每日礼盒": 61,
+            "无线降噪耳机": 39,
+            "智能手环": 78,
+            "植萃护发素": 54,
+            "氨基酸洗面奶": 58,
+            "真皮休闲鞋": 67,
+            "纯棉基础T恤": 70,
+            "轻薄羽绒服": 52,
+            "鲜萃挂耳咖啡": 52
+          },
+          "row_count": 12,
+          "no_tool_status": [
+            "error"
+          ],
+          "note": "六维覆盖: 指标sales_qty/维度product/窗口r2；rows_exact 生成时冻结"
+        },
+        "expected_tools": [
+          {
+            "name": "query_metrics",
+            "args_contract": {
+              "business_line": "retail",
+              "metrics": [
+                "sales_qty"
+              ],
+              "dimensions": [
+                "product"
+              ],
+              "date_start": "2026-11-01",
+              "date_end": "2026-11-02"
+            },
+            "required": true,
+            "order": 1
+          }
+        ]
+      },
+      "runner_error": null,
+      "elapsed_ms": 11541.5
+    },
+    {
+      "id": "HP-009",
+      "category": "happy_path",
+      "expected_action": "result",
+      "query": "近7日 按门店 有效订单量",
+      "focus": [
+        "focus-3"
+      ],
+      "business_line": "retail",
+      "user_id": "U001",
+      "note": "六维覆盖: 指标valid_order_cnt/维度store/窗口r7；rows_exact 生成时冻结",
+      "verdict": "PASS",
+      "fail_reasons": [],
+      "trace_id": "cec585c2872d",
+      "trace_url": "GET /api/trace/cec585c2872d",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/cec585c2872d | python -m json.tool",
+      "soft": null,
+      "resp": {
+        "answer_type": "result",
+        "text": "查到 18 行，指标：有效订单量。\n· BJ1号店：有效订单量=35\n· BJ2号店：有效订单量=43\n· CD1号店：有效订单量=40\n…… 其余 15 行见下方表格。\n时间口径：2026-10-27 ~ 2026-11-02（自定义）\n可见范围：全部数据",
+        "sql": "SELECT store_name AS \"店铺\", SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) AS \"有效订单量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY store_name\nORDER BY 1",
+        "row_count": 18,
+        "rows_head": [
+          [
+            "BJ1号店",
+            35
+          ],
+          [
+            "BJ2号店",
+            43
+          ],
+          [
+            "CD1号店",
+            40
+          ],
+          [
+            "CD2号店",
+            35
+          ],
+          [
+            "CQ1号店",
+            38
+          ],
+          [
+            "CQ2号店",
+            38
+          ],
+          [
+            "GZ1号店",
+            40
+          ],
+          [
+            "GZ2号店",
+            42
+          ],
+          [
+            "HZ1号店",
+            48
+          ],
+          [
+            "HZ2号店",
+            43
+          ],
+          [
+            "NJ1号店",
+            33
+          ],
+          [
+            "NJ2号店",
+            39
+          ],
+          [
+            "SH1号店",
+            42
+          ],
+          [
+            "SH2号店",
+            44
+          ],
+          [
+            "SZ1号店",
+            42
+          ],
+          [
+            "SZ2号店",
+            44
+          ],
+          [
+            "TJ1号店",
+            46
+          ],
+          [
+            "TJ2号店",
+            39
+          ]
+        ],
+        "suggestions": [
+          "按天看趋势",
+          "换成销售额 / 客单价对比",
+          "查看零售线明细",
+          "导出 CSV / Excel"
+        ],
+        "confidence": 0.9
+      },
+      "trace": {
+        "decisions": [
+          {
+            "round": 1,
+            "selected": [
+              "query_metrics"
+            ],
+            "finish_reason": "tool_calls",
+            "raw": [
+              {
+                "id": "call_aa3dd9d834454f6d83974254",
+                "name": "query_metrics",
+                "arguments": {
+                  "business_line": "retail",
+                  "metrics": [
+                    "valid_order_cnt"
+                  ],
+                  "dimensions": [
+                    "store"
+                  ],
+                  "date_start": "2026-10-27",
+                  "date_end": "2026-11-02"
+                }
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "selected": [],
+            "finish_reason": "stop",
+            "raw": []
+          }
+        ],
+        "tool_calls": [
+          {
+            "round": 1,
+            "tool_name": "query_metrics",
+            "tool_args": {
+              "business_line": "retail",
+              "metrics": [
+                "valid_order_cnt"
+              ],
+              "dimensions": [
+                "store"
+              ],
+              "date_start": "2026-10-27",
+              "date_end": "2026-11-02"
+            },
+            "status": "ok",
+            "tool_return": {
+              "row_count": 18,
+              "columns": [
+                "店铺",
+                "有效订单量"
+              ],
+              "rows": [
+                [
+                  "BJ1号店",
+                  35
+                ],
+                [
+                  "BJ2号店",
+                  43
+                ],
+                [
+                  "CD1号店",
+                  40
+                ],
+                [
+                  "CD2号店",
+                  35
+                ],
+                [
+                  "CQ1号店",
+                  38
+                ]
+              ],
+              "sql": "SELECT store_name AS \"店铺\", SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) AS \"有效订单量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY store_name\nORDER BY 1",
+              "view": "v_retail_order"
+            },
+            "error": null,
+            "latency_ms": 5.96
+          }
+        ],
+        "n_decisions": 2,
+        "n_tool_calls": 1
+      },
+      "expected": {
+        "verdict": {
+          "answer_type": "result",
+          "sql_must": [
+            "\"店铺\"",
+            "\"有效订单量\"",
+            "BETWEEN",
+            "SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END)",
+            "is_valid = 1",
+            "order_date",
+            "store_name",
+            "v_retail_order"
+          ],
+          "rows_exact": {
+            "BJ1号店": 35,
+            "BJ2号店": 43,
+            "CD1号店": 40,
+            "CD2号店": 35,
+            "CQ1号店": 38,
+            "CQ2号店": 38,
+            "GZ1号店": 40,
+            "GZ2号店": 42,
+            "HZ1号店": 48,
+            "HZ2号店": 43,
+            "NJ1号店": 33,
+            "NJ2号店": 39,
+            "SH1号店": 42,
+            "SH2号店": 44,
+            "SZ1号店": 42,
+            "SZ2号店": 44,
+            "TJ1号店": 46,
+            "TJ2号店": 39
+          },
+          "row_count": 18,
+          "no_tool_status": [
+            "error"
+          ],
+          "note": "六维覆盖: 指标valid_order_cnt/维度store/窗口r7；rows_exact 生成时冻结"
+        },
+        "expected_tools": [
+          {
+            "name": "query_metrics",
+            "args_contract": {
+              "business_line": "retail",
+              "metrics": [
+                "valid_order_cnt"
+              ],
+              "dimensions": [
+                "store"
+              ],
+              "date_start": "2026-10-27",
+              "date_end": "2026-11-02"
+            },
+            "required": true,
+            "order": 1
+          }
+        ]
+      },
+      "runner_error": null,
+      "elapsed_ms": 8664.4
+    },
+    {
+      "id": "HP-010",
+      "category": "happy_path",
+      "expected_action": "result",
+      "query": "近30日 按卖家 有效订单量",
+      "focus": [
+        "focus-3"
+      ],
+      "business_line": "retail",
+      "user_id": "U001",
+      "note": "六维覆盖: 指标valid_order_cnt/维度seller/窗口r30；rows_exact 生成时冻结",
+      "verdict": "PASS",
+      "fail_reasons": [],
+      "trace_id": "e3194560a8cb",
+      "trace_url": "GET /api/trace/e3194560a8cb",
+      "curl": "curl -s http://127.0.0.1:8000/api/trace/e3194560a8cb | python -m json.tool",
+      "soft": null,
+      "resp": {
+        "answer_type": "result",
+        "text": "查到 18 行，指标：有效订单量。\n· 上海1号店卖家：有效订单量=171\n· 上海2号店卖家：有效订单量=167\n· 北京1号店卖家：有效订单量=148\n…… 其余 15 行见下方表格。\n时间口径：2026-10-04 ~ 2026-11-02（自定义）\n可见范围：全部数据",
+        "sql": "SELECT seller_name AS \"卖家\", SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) AS \"有效订单量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY seller_name\nORDER BY 1",
+        "row_count": 18,
+        "rows_head": [
+          [
+            "上海1号店卖家",
+            171
+          ],
+          [
+            "上海2号店卖家",
+            167
+          ],
+          [
+            "北京1号店卖家",
+            148
+          ],
+          [
+            "北京2号店卖家",
+            168
+          ],
+          [
+            "南京1号店卖家",
+            168
+          ],
+          [
+            "南京2号店卖家",
+            154
+          ],
+          [
+            "天津1号店卖家",
+            177
+          ],
+          [
+            "天津2号店卖家",
+            144
+          ],
+          [
+            "广州1号店卖家",
+            173
+          ],
+          [
+            "广州2号店卖家",
+            180
+          ],
+          [
+            "成都1号店卖家",
+            163
+          ],
+          [
+            "成都2号店卖家",
+            146
+          ],
+          [
+            "杭州1号店卖家",
+            178
+          ],
+          [
+            "杭州2号店卖家",
+            172
+          ],
+          [
+            "深圳1号店卖家",
+            172
+          ],
+          [
+            "深圳2号店卖家",
+            168
+          ],
+          [
+            "重庆1号店卖家",
+            163
+          ],
+          [
+            "重庆2号店卖家",
+            165
+          ]
+        ],
+        "suggestions": [
+          "按天看趋势",
+          "换成销售额 / 客单价对比",
+          "查看零售线明细",
+          "导出 CSV / Excel"
+        ],
+        "confidence": 0.9
+      },
+      "trace": {
+        "decisions": [
+          {
+            "round": 1,
+            "selected": [
+              "query_metrics"
+            ],
+            "finish_reason": "tool_calls",
+            "raw": [
+              {
+                "id": "call_5035dcd749bd473784d47397",
+                "name": "query_metrics",
+                "arguments": {
+                  "business_line": "retail",
+                  "metrics": [
+                    "valid_order_cnt"
+                  ],
+                  "dimensions": [
+                    "seller"
+                  ],
+                  "date_start": "2026-10-04",
+                  "date_end": "2026-11-02"
+                }
+              }
+            ]
+          },
+          {
+            "round": 2,
+            "selected": [],
+            "finish_reason": "stop",
+            "raw": []
+          }
+        ],
+        "tool_calls": [
+          {
+            "round": 1,
+            "tool_name": "query_metrics",
+            "tool_args": {
+              "business_line": "retail",
+              "metrics": [
+                "valid_order_cnt"
+              ],
+              "dimensions": [
+                "seller"
+              ],
+              "date_start": "2026-10-04",
+              "date_end": "2026-11-02"
+            },
+            "status": "ok",
+            "tool_return": {
+              "row_count": 18,
+              "columns": [
+                "卖家",
+                "有效订单量"
+              ],
+              "rows": [
+                [
+                  "上海1号店卖家",
+                  171
+                ],
+                [
+                  "上海2号店卖家",
+                  167
+                ],
+                [
+                  "北京1号店卖家",
+                  148
+                ],
+                [
+                  "北京2号店卖家",
+                  168
+                ],
+                [
+                  "南京1号店卖家",
+                  168
+                ]
+              ],
+              "sql": "SELECT seller_name AS \"卖家\", SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) AS \"有效订单量\"\nFROM v_retail_order\nWHERE order_date BETWEEN ? AND ?\nGROUP BY seller_name\nORDER BY 1",
+              "view": "v_retail_order"
+            },
+            "error": null,
+            "latency_ms": 9.35
+          }
+        ],
+        "n_decisions": 2,
+        "n_tool_calls": 1
+      },
+      "expected": {
+        "verdict": {
+          "answer_type": "result",
+          "sql_must": [
+            "\"卖家\"",
+            "\"有效订单量\"",
+            "BETWEEN",
+            "SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END)",
+            "is_valid = 1",
+            "order_date",
+            "seller_name",
+            "v_retail_order"
+          ],
+          "rows_exact": {
+            "上海1号店卖家": 171,
+            "上海2号店卖家": 167,
+            "北京1号店卖家": 148,
+            "北京2号店卖家": 168,
+            "南京1号店卖家": 168,
+            "南京2号店卖家": 154,
+            "天津1号店卖家": 177,
+            "天津2号店卖家": 144,
+            "广州1号店卖家": 173,
+            "广州2号店卖家": 180,
+            "成都1号店卖家": 163,
+            "成都2号店卖家": 146,
+            "杭州1号店卖家": 178,
+            "杭州2号店卖家": 172,
+            "深圳1号店卖家": 172,
+            "深圳2号店卖家": 168,
+            "重庆1号店卖家": 163,
+            "重庆2号店卖家": 165
+          },
+          "row_count": 18,
+          "no_tool_status": [
+            "error"
+          ],
+          "note": "六维覆盖: 指标valid_order_cnt/维度seller/窗口r30；rows_exact 生成时冻结"
+        },
+        "expected_tools": [
+          {
+            "name": "query_metrics",
+            "args_contract": {
+              "business_line": "retail",
+              "metrics": [
+                "valid_order_cnt"
+              ],
+              "dimensions": [
+                "seller"
+              ],
+              "date_start": "2026-10-04",
+              "date_end": "2026-11-02"
+            },
+            "required": true,
+            "order": 1
+          }
+        ]
+      },
+      "runner_error": null,
+      "elapsed_ms": 11653.7
     }
   ]
 }

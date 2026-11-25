@@ -613,7 +613,7 @@
 - id: HP-011
   category: happy_path
   difficulty: easy
-  query: 昨日 有效订单量
+  query: 昨日有效订单量
   context:
     user_id: U001
     anchor_t: '2026-11-03'
@@ -630,7 +630,7 @@
       metrics:
       - valid_order_cnt
       dimensions:
-      - date
+      - ''
       date_start: '2026-11-02'
       date_end: '2026-11-02'
     required: true
@@ -653,7 +653,7 @@
     no_tool_status:
     - error
     forbidden_text: []
-    note: '六维覆盖: 指标valid_order_cnt/维度默认date/窗口y1；rows_exact 生成时冻结'
+    note: '六维覆盖: 指标valid_order_cnt/窗口y1；rows_exact 生成时冻结'
   tags:
   - happy_path
   - easy

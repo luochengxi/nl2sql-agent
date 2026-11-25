@@ -476,12 +476,12 @@ http://127.0.0.1:8765</pre>
   <div class="panel" style="border-left:3px solid var(--warn);margin-bottom:14px">
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
       <div>
-        <b style="font-size:13.5px">内置缺陷 · 本次排查发现：销售额口径更新未生效</b>
-        <span class="pill skip" style="margin-left:8px">P1</span>
-        <span class="pill fail" style="margin-left:4px">PASS 假阳性</span>
+        <b style="font-size:13.5px">内置缺陷 · 本次排查发现（2 条）</b>
+        <span class="pill skip" style="margin-left:8px">DEF-CAL-001 口径 P1</span>
+        <span class="pill fail" style="margin-left:4px">DEF-011 维度 P2 · 自动载入</span>
       </div>
     </div>
-    <p class="note" style="margin:8px 0">这条缺陷被测黄金集判为 <b>PASS</b>（旧口径真值过期），05 结果看板的「登记为缺陷」按钮只对 FAIL 出现、无法带入，故预置在此。点下方按钮载入后，即可像普通缺陷一样编辑、流转状态、导出归档。trace_id 请填入你实测第 4 条时拿到的值。</p>
+    <p class="note" style="margin:8px 0"><b>DEF-011</b>（HP-011 维度缺失）已标记自动载入：打开页面即在下方缺陷列表，下次直接可查。<b>DEF-CAL-001</b> 被判 PASS（旧口径真值过期）、无法从结果看板带入，需点下方按钮手动载入（trace_id 请填实测第 4 条的值）。两条都可编辑、流转状态、导出归档。</p>
     <div class="toolbar" style="margin:0"><button class="btn primary" id="btnLoadBuiltinDef">载入到缺陷列表</button><span class="note" style="margin:0" id="builtinHint"></span></div>
   </div>
 
@@ -847,6 +847,11 @@ http://127.0.0.1:8765</pre>
     title:'销售额口径更新未生效：HP-004 仍按旧口径取数且被判 PASS（假阳性）',
     detail:'【现象】\n更新 knowledge/caliber/销售额.md，计入范围由「所有状态订单」改为「所有有效状态订单」后，HP-004「近7日 按天 成交额」生成的 SQL 仍为 ROUND(SUM(pay_amount), 2)，未带 is_valid = 1 过滤；测试仍判 PASS。\n\n【决策轨迹】\ndecision[] 共 2 轮，只调用 query_metrics，未调用 search_caliber。\n\n【根因（4 处断点）】\n1. SQL 唯一来源是 semantic_layer.yaml 的 expr（nl2sql.py:34-43），与口径文档无数据通路；pay_amount.expr 未含 is_valid 过滤。\n2. search_caliber 只返回 d.ref()（dispatcher.py:69-74），拿不到口径正文边界；且 version 仍为 1.1、updated 未改，引用串无变化。\n3. RAG 索引是内存单例（rag.py:128-135），直接改 md 不自动刷新，需 POST /api/calibers/refresh。\n4. 黄金集 11/19 冻结，HP-004 的 sql_must 无 is_valid = 1、rows_exact 是旧口径值 → 旧口径反而 PASS、改对反而 FAIL（真假判定反转）。\n\n【修复步骤】\n1. semantic_layer.yaml: pay_amount.expr 改为 ROUND(SUM(CASE WHEN is_valid = 1 THEN pay_amount ELSE 0 END), 2)，requires 加 is_valid。\n2. 口径文档 version 升 1.2、updated 改 2026-11-20。\n3. POST /api/calibers/refresh；重启 8000（agent）与 8765（执行台）服务清 _CACHE / lru_cache。\n4. 重跑 build_golden_fc100.py + check_golden_fc100.py 重算真值。\n5. 建议黄金集加 caliber_version 锚点，口径升级时检查脚本主动报「黄金集已过期」。\n\n【附带发现】\n新增工具需同时改 tool_schemas.py、dispatcher.py、orchestrator.py 三处；system prompt 未引导 search_caliber 触发条件，导致它永不 invoked。',
     created:'2026-11-20T17:05:00'
+  },{
+    id:'DEF-011',sev:'P2',status:'待确认',caseId:'HP-011',traceId:'38b927244924',
+    title:'昨日有效订单量：模型未传 dimensions，结果缺 date 维度致 rows_exact 与 args_contract 双失败',
+    detail:'【编号】DEF-011\n【case_id】HP-011\n【trace_id】38b927244924（13:11:56 换 qwen4-max 后）\n【级别】P2（数值正确，仅结构/决策不符；按 happy_path 阻断可定 P1）\n【状态】待确认\n【处理人】待分配\n\n【详情·现象】answer_type=result，row_count=1，rows=[[96]]，SQL 无 GROUP BY。两个断言失败：① rows_exact 期望 {"2026-11-02":96}、实得 {}；② query_metrics.dimensions 期望 ["date"]、实得 None。sql_must 6 项全部通过。注：rows_exact 实得 {} 是 runner._rows_equal 遇单列 [[96]] 跳过后拼出的诊断值，真实返回 [[96]]。\n\n【根因（当前态）】模型未传 dimensions=["date"] → SQL 无 GROUP BY → 结果是单列 [[96]] 而非 [["2026-11-02",96]] → rows_exact 和 args_contract 双失败。本质是默认维度口径未定义，非取数能力缺失。补充定位：模型调用 query_metrics 时未填 dimensions；dispatcher.py:50 用 a.get("dimensions", []) 兜底为空 → 编译出的 SQL 不带 GROUP BY；prompt/schema 未告诉模型「无维度词时默认填 date」。\n\n【修复步骤】① 定口径：单日窗口→date、多日无维度词→累计或澄清；② prompt/schema 表达意图（引导模型填 dimensions）+ dispatcher 代码兜底（缺维度按规则补齐）；③ 用 golden 用例钉死该口径；④ 重跑 --id HP-011 --skip-soft，断言 dimensions=["date"]、rows_exact 通过。\n\n【ctx:用户问题】昨日 有效订单量\n【ctx:业务线】retail\n【ctx:用户ID】U001\n【ctx:关注点】focus-3（六维覆盖：指标valid_order_cnt/维度默认date/窗口y1）\n【ctx:sql_b64】U0VMRUNUIFNVTShDQVNFIFdIRU4gaXNfdmFsaWQgPSAxIFRIRU4gMSBFTFNFIDAgRU5EKSBBUyAi5pyJ5pWI6K6i5Y2V6YePIgpGUk9NIHZfcmV0YWlsX29yZGVyCldIRVJFIG9yZGVyX2RhdGUgQkVUV0VFTiA/IEFORCA/\n【ctx:sql_must】"有效订单量" | BETWEEN | SUM(CASE WHEN is_valid = 1 THEN 1 ELSE 0 END) | is_valid = 1 | order_date | v_retail_order（本次全部通过）\n【ctx:调用链】POST /api/chat-fc {U001,"昨日 有效订单量"} → chat_fc(orch:292,turn=38b927244924) → [r1 decision: selected=[query_metrics], finish=tool_calls] → dispatcher.execute: query_metrics args={business_line:retail, metrics:[valid_order_cnt], date_start:2026-11-02, date_end:2026-11-02, dimensions:缺失} → compile(无GROUP BY)+SQLite → [r1 tool_call: status=ok, rows=[[96]], 10.72ms] → [r2 decision: selected=[], finish=stop] → ChatResponse(answer_type=result) → check_hard: rows_exact 失败 + dimensions 失败\n\n【版本追溯】\n发现版本：fc-v1.2.0-1-ga1fedf1-dirty（commit a1fedf1）\n修复版本：未修复（待填）\n口径版本：待确认\n黄金集版本：golden_cases_fc100.jsonl（100 条，冻结真值）\n来源运行：reports/golden_cases_fc100_fc-v1.2.0-1-ga1fedf1-dirty_20261125_131156.json\n回归历史：本次为首次以此形态失败；修复后重跑需记录新 trace_id 与通过状态。',
+    created:'2026-11-25T13:11:56',auto:true
   }];
   function saveDF(){try{localStorage.setItem(DFKEY,JSON.stringify(DF))}catch(e){}}
   function renderDF(){
@@ -911,7 +916,8 @@ http://127.0.0.1:8765</pre>
     var added=0;
     BUILTIN_DEFECTS.forEach(function(b){
       if(!DF.some(function(x){return x.id===b.id})){
-        DF.unshift(JSON.parse(JSON.stringify(b)));added++;
+        var o=JSON.parse(JSON.stringify(b));delete o.auto;
+        DF.unshift(o);added++;
       }
     });
     saveDF();renderDF();
@@ -972,6 +978,21 @@ http://127.0.0.1:8765</pre>
   $('btnHistRefresh').onclick=fetchSrvRuns;
 
   try{var savedDf=localStorage.getItem(DFKEY);if(savedDf){DF=JSON.parse(savedDf)}}catch(e){}
+  // 标记 auto:true 的内置缺陷（如 DEF-011）：打开页面即幂等注入，下次直接可查。用独立 seen key 记住，用户主动删除后不再复活。
+  (function autoLoadBuiltin(){
+    var SK=DFKEY+'_autoseen',seen=[];
+    try{seen=JSON.parse(localStorage.getItem(SK)||'[]')}catch(e){}
+    var changed=false;
+    BUILTIN_DEFECTS.forEach(function(b){
+      if(b.auto&&seen.indexOf(b.id)<0){
+        if(!DF.some(function(x){return x.id===b.id})){var o=JSON.parse(JSON.stringify(b));delete o.auto;DF.unshift(o)}
+        seen.push(b.id);changed=true;
+      }
+    });
+    if(changed){try{localStorage.setItem(SK,JSON.stringify(seen))}catch(e){}
+      // 首次注入若 DF 还是空（未过 saveDF），这里统一落盘
+      try{localStorage.setItem(DFKEY,JSON.stringify(DF))}catch(e){}}
+  })();
   renderDF();
   renderHistory();fetchSrvRuns();
 

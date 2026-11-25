@@ -53,7 +53,7 @@ class OpenAILikeProvider(LLMProvider):
         cfg = settings().get("llm", {})
         self.base_url = str(cfg.get("openai_base_url", "https://ws-8hbix6p5babbj3uf.cn-beijing.maas.aliyuncs.com/compatible-mode/v1")).rstrip("/")
         # self.base_url = str(cfg.get("openai_base_url", "https://api.openai.com/v1")).rstrip("/")
-        self.model = str(cfg.get("openai_model", "qwen3.7-plus"))
+        self.model = str(cfg.get("openai_model", "qwen4-max"))
         # self.model = str(cfg.get("openai_model", "gpt-4o-mini"))
         self.api_key = os.environ.get(str(cfg.get("openai_api_key_env", "OPENAI_API_KEY")), "")
         self.temperature = float(cfg.get("temperature", 0))
